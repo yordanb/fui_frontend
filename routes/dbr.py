@@ -3,7 +3,8 @@ from flask import Blueprint, render_template, request, Response, session, redire
 
 dbr_bp = Blueprint('dbr', __name__)
 
-DBR_API = 'http://localhost:8010'
+import os
+DBR_API = os.environ.get('DBR_API', 'http://localhost:8010')
 
 @dbr_bp.route('/dbr')
 def dashboard():

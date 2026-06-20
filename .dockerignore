@@ -1,0 +1,15 @@
+__pycache__
+*.pyc
+.env
+.git
+.gitignore
+node_modules
+dist
+public
+src/
+package*.json
+tsconfig*.json
+vite.config.ts
+eslint.config.js
+index.html
+README.md

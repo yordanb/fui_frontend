@@ -1,0 +1,32 @@
+services:
+
+  fui-frontend:
+    build: .
+    container_name: fui-frontend
+    restart: unless-stopped
+
+    ports:
+      - "3005:3005"
+
+    environment:
+      API_BASE: http://fui-api:8008/api
+      OIL_API: http://oil-lab-api:8008
+      DBR_API: http://dbr-api:8010
+      SECRET_KEY: ${SECRET_KEY:-}
+
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3005/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+    networks:
+      - backend-network
+      - oil-lab-net
+
+networks:
+  backend-network:
+    external: true
+  oil-lab-net:
+    external: true

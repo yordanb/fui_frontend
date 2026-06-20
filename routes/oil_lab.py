@@ -3,7 +3,8 @@ from flask import Blueprint, render_template, request, Response, current_app, se
 
 oil_bp = Blueprint('oil', __name__)
 
-OIL_API = 'http://localhost:8009'
+import os
+OIL_API = os.environ.get('OIL_API', 'http://localhost:8009')
 
 @oil_bp.route('/oil-lab')
 def dashboard():
