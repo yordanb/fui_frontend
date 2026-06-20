@@ -15,7 +15,7 @@ services:
       SECRET_KEY: ${SECRET_KEY:-}
 
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3005/"]
+      test: python3 -c "import urllib.request; urllib.request.urlopen('http://localhost:3005/login')"
       interval: 30s
       timeout: 5s
       retries: 3
