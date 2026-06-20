@@ -1,0 +1,255 @@
+{% extends "base.html" %}
+{% block title %}Oil Lab - FUI Management{% endblock %}
+{% block content %}
+<div class="mb-4">
+    <h1 class="text-xl font-bold text-gray-900">🛢 Oil Data Lab</h1>
+    <p class="text-gray-500 text-xs">Dashboard analisa sampel oil</p>
+</div>
+
+<!-- STATS ROW -->
+<div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4" id="statsRow">
+    <div class="card p-4">
+        <div class="text-xs text-gray-400">Total Sampel</div>
+        <div class="text-2xl font-bold text-blue-700" id="statTotal">-</div>
+    </div>
+    <div class="card p-4">
+        <div class="text-xs text-gray-400">Unit Unik</div>
+        <div class="text-2xl font-bold text-green-700" id="statUnits">-</div>
+    </div>
+    <div class="card p-4">
+        <div class="text-xs text-gray-400">Filter Aktif</div>
+        <div class="text-2xl font-bold text-orange-700" id="statFiltered">-</div>
+    </div>
+    <div class="card p-4">
+        <div class="text-xs text-gray-400">Model Unik</div>
+        <div class="text-2xl font-bold text-purple-700" id="statModels">-</div>
+    </div>
+</div>
+
+<!-- FILTERS -->
+<div class="card p-4 mb-4">
+    <h2 class="text-sm font-semibold text-gray-900 mb-3">🔍 Filter Data</h2>
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+        <div>
+            <label class="text-xs font-medium text-gray-600">Vesselid</label>
+            <input id="fVessel" class="input-field mt-1" placeholder="Cth: EX1855">
+        </div>
+        <div>
+            <label class="text-xs font-medium text-gray-600">Unit ID</label>
+            <select id="fUnit" class="input-field mt-1 bg-white">
+                <option value="">Semua</option>
+            </select>
+        </div>
+        <div>
+            <label class="text-xs font-medium text-gray-600">Tgl Mulai</label>
+            <input type="date" id="fDateFrom" class="input-field mt-1">
+        </div>
+        <div>
+            <label class="text-xs font-medium text-gray-600">Tgl Sampai</label>
+            <input type="date" id="fDateTo" class="input-field mt-1">
+        </div>
+    </div>
+    <div class="flex gap-3 mt-3">
+        <button onclick="loadDashboard()" class="btn-primary text-sm">🔎 Terapkan Filter</button>
+        <button onclick="resetFilter()" class="btn-sm bg-gray-200 text-gray-600 hover:bg-gray-300">Reset</button>
+        <span class="text-xs text-gray-400 self-center">Enter untuk filter</span>
+    </div>
+</div>
+
+<!-- DATA TABLE -->
+<div class="card p-4">
+    <div class="flex items-center justify-between mb-3">
+        <h2 class="text-sm font-semibold text-gray-900">📋 Data Sampel</h2>
+        <div class="flex items-center gap-2">
+            <span class="text-xs text-gray-400" id="pageInfo">Halaman 1</span>
+            <button onclick="prevPage()" class="btn-sm bg-gray-100 hover:bg-gray-200">←</button>
+            <button onclick="nextPage()" class="btn-sm bg-gray-100 hover:bg-gray-200">→</button>
+        </div>
+    </div>
+    <div id="filterChips" class="flex flex-wrap gap-2 mb-3 text-xs hidden"></div>
+    <div class="table-wrap">
+        <table class="w-full text-sm">
+            <thead>
+                <tr>
+                    <th class="px-3 py-2 text-left border-b font-medium text-gray-600 whitespace-nowrap">Vesselid / Unit</th>
+                    <th class="px-3 py-2 text-left border-b font-medium text-gray-600 whitespace-nowrap">Tgl Sample<br><span class="text-xs font-normal">Unit Time</span></th>
+                    <th class="px-3 py-2 text-center border-b font-medium text-gray-600">Visc · Fuel · Soot · Oxi · Nitr · Wtr · Tbn · Si · Fe · Cu · Al · Cr · Pb · Na</th>
+                    <th class="px-3 py-2 text-center border-b font-medium text-gray-600 whitespace-nowrap">Condition</th>
+                </tr>
+            </thead>
+            <tbody id="dashBody">
+                <tr><td colspan="4" class="text-center text-gray-400 py-12">Terapkan filter untuk melihat data</td></tr>
+            </tbody>
+        </table>
+    </div>
+    <div class="flex justify-between items-center mt-3 text-xs text-gray-400">
+        <span id="tableInfo">0 baris</span>
+        <button onclick="exportCSV()" class="btn-sm bg-green-100 text-green-700 hover:bg-green-200">⬇ CSV</button>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const API = '/oil-lab-api';
+let page = 0;
+const PAGE_SIZE = 50;
+let lastResult = null;
+
+const ELEM_LABELS = ['Visc','Fuel','Soot','Oxi','Nitr','Wtr','Tbn','Si','Fe','Cu','Al','Cr','Pb','Na'];
+const ELEM_COLS  = ['visc','fuel','soot','oxi','nitr','water','tbn','si','fe','cu','al','cr','pb','na'];
+const ELEM_MAP   = [8,10,13,9,12,7,11,5,3,2,0,1,4,6];
+const ELEM_THRESH = { fe:50, cr:20, cu:30, pb:20, si:20, water:1, visc:80, soot:5 };
+
+function getFilterParams() {
+    const fVessel = document.getElementById('fVessel').value.trim();
+    const fUnit = document.getElementById('fUnit').value;
+    const fDateFrom = document.getElementById('fDateFrom').value;
+    const fDateTo = document.getElementById('fDateTo').value;
+    const params = new URLSearchParams();
+    if (fUnit) params.set('unit', fUnit);
+    if (fVessel) params.set('vessel', fVessel);
+    if (fDateFrom) params.set('date_from', fDateFrom);
+    if (fDateTo) params.set('date_to', fDateTo);
+    return { params, fVessel, fUnit, fDateFrom, fDateTo };
+}
+
+async function loadDashboard() {
+    page = 0;
+    const { params, fVessel, fUnit, fDateFrom, fDateTo } = getFilterParams();
+
+    const chips = [];
+    if (fUnit) chips.push({label:`Unit: ${fUnit}`, cb:()=>{document.getElementById('fUnit').value='';loadDashboard();}});
+    if (fVessel) chips.push({label:`Vessel: ${fVessel}`, cb:()=>{document.getElementById('fVessel').value='';loadDashboard();}});
+    if (fDateFrom) chips.push({label:`Dari: ${fDateFrom}`, cb:()=>{document.getElementById('fDateFrom').value='';loadDashboard();}});
+    if (fDateTo) chips.push({label:`Sampai: ${fDateTo}`, cb:()=>{document.getElementById('fDateTo').value='';loadDashboard();}});
+    renderChips(chips);
+
+    try {
+        const sr = await fetch(`${API}/api/samples/stats?${params}`);
+        const sd = await sr.json();
+        document.getElementById('statTotal').textContent = Number(sd.total || 0).toLocaleString();
+        document.getElementById('statUnits').textContent = Number(sd.units || 0).toLocaleString();
+        document.getElementById('statModels').textContent = Number(sd.models || 0).toLocaleString();
+        document.getElementById('statFiltered').textContent = Number(sd.filtered || 0).toLocaleString();
+    } catch(e) {
+        document.getElementById('statTotal').textContent = '-';
+    }
+
+    fetchDashboardPage();
+}
+
+async function fetchDashboardPage() {
+    const { params } = getFilterParams();
+    params.set('page', page + 1);
+    params.set('page_size', PAGE_SIZE);
+
+    try {
+        const r = await fetch(`${API}/api/samples/search?${params}`);
+        const d = await r.json();
+        lastResult = d;
+        renderTable(d.items);
+        document.getElementById('pageInfo').textContent = `Halaman ${page+1}`;
+        document.getElementById('tableInfo').textContent = d.items ? `${d.items.length} baris` : '0 baris';
+    } catch(e) {
+        document.getElementById('dashBody').innerHTML = `<tr><td colspan="4" class="text-center text-red-500 py-8">Error: ${e.message}</td></tr>`;
+    }
+}
+
+function renderTable(items) {
+    const tbody = document.getElementById('dashBody');
+    if (!items || !items.length) {
+        tbody.innerHTML = '<tr><td colspan="4" class="text-center text-gray-400 py-12">Tidak ada data</td></tr>';
+        return;
+    }
+    tbody.innerHTML = items.map(r => {
+        const elemVals = ELEM_COLS.map(c => r[c]);
+        const cond = (r.condition||'').toLowerCase();
+        const condBg = cond === 'normal' ? 'bg-green-100 text-green-700' :
+                       cond.includes('crit') ? 'bg-red-100 text-red-700 font-bold' :
+                       cond.includes('abnormal') ? 'bg-yellow-100 text-yellow-700' :
+                       'bg-gray-100 text-gray-600';
+
+        let elemHtml = '<div class="grid grid-cols-7 gap-x-2 gap-y-1 text-xs">';
+        for (let i = 0; i < ELEM_LABELS.length; i++) {
+            const v = elemVals[ELEM_MAP[i]];
+            const n = parseFloat(v);
+            let cl = '';
+            if (n > 0) {
+                const th = ELEM_THRESH[ELEM_COLS[i]];
+                if (th && n > th) cl = 'text-red-600 font-bold';
+            }
+            const display = isNaN(n) ? '-' : n.toFixed(1);
+            elemHtml += `<div><span class="text-gray-400">${ELEM_LABELS[i]}</span> <span class="${cl}">${display}</span></div>`;
+        }
+        elemHtml += '</div>';
+
+        return `<tr class="hover:bg-blue-50 border-b">
+            <td class="px-3 py-2"><div class="font-medium">${r.vesselid||''}</div><div class="text-xs text-gray-500">${r.unit_id||''}</div></td>
+            <td class="px-3 py-2 whitespace-nowrap"><div>${r.sample_date ? String(r.sample_date).substring(0,10) : ''}</div><div class="text-xs text-gray-500">${r.unit_time||''}</div></td>
+            <td class="px-3 py-2">${elemHtml}</td>
+            <td class="px-3 py-2 text-center whitespace-nowrap"><span class="px-2 py-1 rounded text-xs ${condBg}">${r.condition||'-'}</span></td>
+        </tr>`;
+    }).join('');
+}
+
+function prevPage() { if (page > 0) { page--; fetchDashboardPage(); } }
+function nextPage() { page++; fetchDashboardPage(); }
+
+function resetFilter() {
+    document.querySelectorAll('#fUnit,#fVessel,#fDateFrom,#fDateTo').forEach(el => el.value = '');
+    renderChips([]);
+    loadDashboard();
+}
+
+function renderChips(chips) {
+    const el = document.getElementById('filterChips');
+    if (!chips.length) { el.classList.add('hidden'); el.innerHTML = ''; return; }
+    el.classList.remove('hidden');
+    el.innerHTML = chips.map(c => `<span class="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">${c.label}<button onclick="(${c.cb.toString()})()" class="ml-1 hover:text-red-500">✕</button></span>`).join('');
+}
+
+function exportCSV() {
+    if (!lastResult || !lastResult.items || !lastResult.items.length) return alert('Tidak ada data');
+    const header = 'vesselid,sample_date,unit_time,' + ELEM_COLS.join(',') + ',condition';
+    const csv = header + '\n' + lastResult.items.map(r => {
+        const vals = ['vesselid','sample_date','unit_time'].concat(ELEM_COLS).concat(['condition']).map(k => {
+            const s = String(r[k]||'').replace(/"/g,'""');
+            return s.includes(',') ? `"${s}"` : s;
+        });
+        return vals.join(',');
+    }).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'oil_data_export.csv';
+    a.click();
+}
+
+async function loadUnitOptions(vesselFilter) {
+    const params = new URLSearchParams();
+    if (vesselFilter) params.set('vessel', vesselFilter);
+    try {
+        const r = await fetch(`${API}/api/samples/units?${params}`);
+        const d = await r.json();
+        const sel = document.getElementById('fUnit');
+        const current = sel.value;
+        sel.innerHTML = '<option value="">Semua</option>';
+        if (Array.isArray(d)) d.forEach(u => {
+            const o = document.createElement('option');
+            o.value = u;
+            o.textContent = u;
+            sel.appendChild(o);
+        });
+        if (current) { for (const opt of sel.options) { if (opt.value === current) { sel.value = current; break; } } }
+    } catch(e) {}
+}
+
+document.getElementById('fVessel').addEventListener('input', function() { loadUnitOptions(this.value.trim()); });
+document.querySelectorAll('#fUnit,#fVessel,#fDateFrom,#fDateTo').forEach(el => {
+    el.addEventListener('keydown', e => { if (e.key === 'Enter') loadDashboard(); });
+});
+
+document.addEventListener('DOMContentLoaded', () => { loadUnitOptions(''); loadDashboard(); });
+</script>
+{% endblock %}

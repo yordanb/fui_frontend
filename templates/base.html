@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>{% block title %}FUI Management{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { font-family: 'Inter', sans-serif; }
+        body { background: #f8fafc; }
+        .glass { background: rgba(255,255,255,0.95); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-bottom: 1px solid #e2e8f0; }
+        .card { background: white; border: 1px solid #e2e8f0; border-radius: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+        .btn-primary { background: #2563eb; color: white; padding: 10px 20px; border-radius: 10px; font-weight: 600; font-size: 14px; display: inline-flex; align-items: center; gap: 8px; }
+        .btn-primary:hover { background: #1d4ed8; }
+        .btn-sm { padding: 6px 14px; font-size: 13px; border-radius: 8px; font-weight: 500; border: none; cursor: pointer; }
+        .input-field { width: 100%; padding: 10px 14px; border: 1px solid #e2e8f0; border-radius: 10px; font-size: 14px; outline: none; background: #f8fafc; }
+        .input-field:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); background: white; }
+        .badge { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+        .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        .table-wrap table { min-width: 600px; width: 100%; border-collapse: collapse; }
+        .table-wrap th { text-align: left; padding: 12px 16px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: #64748b; background: #f8fafc; border-bottom: 1px solid #e2e8f0; white-space: nowrap; }
+        .table-wrap td { padding: 14px 16px; font-size: 14px; border-bottom: 1px solid #f1f5f9; white-space: nowrap; }
+        .table-wrap tr:last-child td { border-bottom: none; }
+        .table-wrap tr:hover td { background: #f8fafc; }
+        .stat-card { background: white; border: 1px solid #e2e8f0; border-radius: 16px; padding: 16px; }
+        .progress-bar { height: 8px; background: #f1f5f9; border-radius: 999px; overflow: hidden; }
+        .progress-fill { height: 100%; border-radius: 999px; transition: width 0.6s ease; }
+        .tab-btn { padding: 10px 16px; font-size: 14px; font-weight: 500; border-bottom: 2px solid transparent; cursor: pointer; background: none; white-space: nowrap; }
+        .tab-btn.active { color: #2563eb; border-bottom-color: #2563eb; }
+        .mobile-nav { display: none; }
+        .mobile-nav.open { display: block; }
+        @media (max-width: 768px) {
+            .desktop-nav { display: none; }
+            .mobile-toggle { display: block; }
+        }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        .fade-in { animation: fadeIn 0.3s ease forwards; }
+    </style>
+</head>
+<body>
+    {% if session.token %}
+    <nav class="glass sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex justify-between h-14 items-center">
+                <a href="/" class="flex items-center gap-2.5">
+                    <div class="w-8 h-8 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl flex items-center justify-center shadow-md shadow-blue-200 shrink-0">
+                        <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                    </div>
+                    <span class="hidden sm:inline text-base font-bold text-gray-900">FUI</span>
+                </a>
+
+                <div class="desktop-nav flex items-center gap-1">
+                    <a href="/dashboard" class="nav-link px-3 py-2 rounded-lg text-sm font-medium {% if request.path == '/dashboard' %}bg-blue-50 text-blue-700{% else %}text-gray-600 hover:bg-gray-100{% endif %}">Dashboard</a>
+                    <a href="/oil-lab" class="nav-link px-3 py-2 rounded-lg text-sm font-medium {% if request.path == '/oil-lab' %}bg-blue-50 text-blue-700{% else %}text-gray-600 hover:bg-gray-100{% endif %}">Oil Lab</a>
+                    <a href="/dbr" class="nav-link px-3 py-2 rounded-lg text-sm font-medium {% if request.path == '/dbr' %}bg-blue-50 text-blue-700{% else %}text-gray-600 hover:bg-gray-100{% endif %}">DBR</a>
+                    <a href="/fui" class="nav-link px-3 py-2 rounded-lg text-sm font-medium {% if '/fui' in request.path and request.path != '/fui/create' %}bg-blue-50 text-blue-700{% else %}text-gray-600 hover:bg-gray-100{% endif %}">FUI</a>
+                    <a href="/fui/create" class="nav-link px-3 py-2 rounded-lg text-sm font-medium {% if '/fui/create' in request.path %}bg-blue-50 text-blue-700{% else %}text-gray-600 hover:bg-gray-100{% endif %}">+ New</a>
+                    {% if session.user and 'ADMIN_TE' in session.user.roles %}
+                    <a href="/users" class="nav-link px-3 py-2 rounded-lg text-sm font-medium {% if '/users' in request.path %}bg-blue-50 text-blue-700{% else %}text-gray-600 hover:bg-gray-100{% endif %}">Users</a>
+                    {% endif %}
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <div class="hidden md:flex items-center gap-2 text-sm text-gray-600">
+                        <div class="w-7 h-7 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-sm shrink-0">
+                            {{ (session.user.fullname or session.user.username)[0]|upper }}
+                        </div>
+                        <span class="text-gray-700 font-medium text-xs md:text-sm">{{ session.user.fullname or session.user.username }}</span>
+                    </div>
+                    <a href="/logout" class="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors" title="Logout">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+                    </a>
+                    <button onclick="toggleMobileNav()" class="md:hidden p-2 text-gray-600 hover:bg-gray-100 rounded-lg">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div id="mobileNav" class="mobile-nav border-t border-gray-100 bg-white px-4 py-2">
+            <a href="/dashboard" class="block px-3 py-2.5 rounded-lg text-sm font-medium {% if request.path == '/dashboard' %}bg-blue-50 text-blue-700{% else %}text-gray-600 hover:bg-gray-100{% endif %}">Dashboard</a>
+            <a href="/oil-lab" class="block px-3 py-2.5 rounded-lg text-sm font-medium {% if request.path == '/oil-lab' %}bg-blue-50 text-blue-700{% else %}text-gray-600 hover:bg-gray-100{% endif %}">Oil Lab</a>
+            <a href="/dbr" class="block px-3 py-2.5 rounded-lg text-sm font-medium {% if request.path == '/dbr' %}bg-blue-50 text-blue-700{% else %}text-gray-600 hover:bg-gray-100{% endif %}">DBR</a>
+            <a href="/fui" class="block px-3 py-2.5 rounded-lg text-sm font-medium {% if '/fui' in request.path and request.path != '/fui/create' %}bg-blue-50 text-blue-700{% else %}text-gray-600 hover:bg-gray-100{% endif %}">FUI List</a>
+            <a href="/fui/create" class="block px-3 py-2.5 rounded-lg text-sm font-medium {% if '/fui/create' in request.path %}bg-blue-50 text-blue-700{% else %}text-gray-600 hover:bg-gray-100{% endif %}">New FUI</a>
+            {% if session.user and 'ADMIN_TE' in session.user.roles %}
+            <a href="/users" class="block px-3 py-2.5 rounded-lg text-sm font-medium {% if '/users' in request.path %}bg-blue-50 text-blue-700{% else %}text-gray-600 hover:bg-gray-100{% endif %}">Users</a>
+            {% endif %}
+            <div class="border-t border-gray-100 mt-2 pt-3 flex items-center gap-2 px-3 text-sm text-gray-500">
+                <div class="w-7 h-7 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white text-xs font-bold">{{ (session.user.fullname or session.user.username)[0]|upper }}</div>
+                {{ session.user.fullname or session.user.username }}
+            </div>
+        </div>
+    </nav>
+    {% endif %}
+
+    <main class="max-w-7xl mx-auto px-3 md:px-4 py-4 fade-in">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="mb-4 space-y-2">
+            {% for category, message in messages %}
+            <div class="flex items-center gap-2.5 px-4 py-3 rounded-xl text-sm font-medium {% if category == 'error' %}bg-red-50 text-red-700 border border-red-200{% else %}bg-green-50 text-green-700 border border-green-200{% endif %}">
+                {% if category == 'error' %}
+                <svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                {% else %}
+                <svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                {% endif %}
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+        {% block content %}{% endblock %}
+    </main>
+
+    <script>
+    function toggleMobileNav() {
+        document.getElementById('mobileNav').classList.toggle('open');
+    }
+    </script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

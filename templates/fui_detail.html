@@ -1,0 +1,288 @@
+{% extends "base.html" %}
+{% block title %}FUI {{ fui.fui_number }}{% endblock %}
+{% block content %}
+{% set sc = {'DRAFT':'bg-gray-100 text-gray-700','SUBMITTED':'bg-blue-50 text-blue-700','REVIEWED':'bg-yellow-50 text-yellow-700','APPROVED':'bg-green-50 text-green-700','EXECUTED':'bg-purple-50 text-purple-700','CLOSED':'bg-slate-100 text-slate-700'} %}
+
+<a href="/fui" class="inline-flex items-center gap-1 text-sm font-medium text-gray-500 hover:text-gray-700 mb-4">
+    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+    Back
+</a>
+
+<div class="card p-5 mb-5">
+    <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+        <div class="flex items-start gap-3">
+            <div class="w-11 h-11 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center text-white font-bold text-sm shadow-md shadow-blue-200 shrink-0">
+                {{ fui.fui_number.split('-')[-1] if '-' in fui.fui_number else fui.fui_number[:2] }}
+            </div>
+            <div>
+                <h1 class="text-xl font-bold text-gray-900">{{ fui.fui_number }}</h1>
+                <p class="text-sm text-gray-500">{{ fui.unit_number }}</p>
+            </div>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+            <span class="badge text-sm px-3 py-1 {{ sc[fui.status] }}">{{ fui.status }}</span>
+            {% if fui.status == 'DRAFT' and 'ADMIN_TE' in session.user.roles %}
+            <form method="POST" action="/fui/{{ fui.id }}/submit" style="display:inline">
+                <button type="submit" class="btn-sm bg-blue-600 text-white hover:bg-blue-700">Submit</button>
+            </form>
+            {% endif %}
+            {% if fui.status == 'SUBMITTED' and 'ADMIN_TE' in session.user.roles %}
+            <form method="POST" action="/fui/{{ fui.id }}/review" style="display:inline">
+                <button type="submit" class="btn-sm bg-yellow-500 text-white hover:bg-yellow-600">Review</button>
+            </form>
+            {% endif %}
+            {% if fui.status == 'REVIEWED' and 'ADMIN_TE' in session.user.roles %}
+            <form method="POST" action="/fui/{{ fui.id }}/approve" style="display:inline">
+                <button type="submit" class="btn-sm bg-green-600 text-white hover:bg-green-700">Approve</button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-5 pt-5 border-t border-gray-100">
+        <div><span class="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Status</span><p class="text-sm font-semibold text-gray-900 mt-0.5">{{ fui.status }}</p></div>
+        <div><span class="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Priority</span><p class="text-sm font-semibold text-gray-900 mt-0.5">{{ fui.priority_level or '-' }}</p></div>
+        <div><span class="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Created</span><p class="text-sm text-gray-900 mt-0.5">{{ fui.created_at[:10] if fui.created_at else '-' }}</p></div>
+        <div><span class="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Closed</span><p class="text-sm text-gray-900 mt-0.5">{{ fui.closed_at[:10] if fui.closed_at else '-' }}</p></div>
+    </div>
+</div>
+
+<!-- Tabs -->
+<div class="flex gap-0 mb-4 border-b border-gray-200 overflow-x-auto">
+    <button onclick="showTab('analysis')" id="tab-analysis" class="tab-btn active text-sm">Analysis ({{ analyses|length }})</button>
+    <button onclick="showTab('recommendation')" id="tab-recommendation" class="tab-btn text-sm">Recommendations ({{ recommendations|length }})</button>
+    <button onclick="showTab('dbr')" id="tab-dbr" class="tab-btn text-sm">DBR <span id="dbrCount" class="text-xs text-gray-400"></span></button>
+    <button onclick="showTab('oil')" id="tab-oil" class="tab-btn text-sm">Oil Lab <span id="oilCount" class="text-xs text-gray-400"></span></button>
+</div>
+
+<div id="section-analysis">
+    <div class="space-y-3">
+        {% for a in analyses %}
+        <div class="card p-4">
+            <div class="flex items-center gap-2 mb-2 flex-wrap">
+                <span class="badge bg-blue-50 text-blue-700">{{ a.analysis_type or 'General' }}</span>
+            </div>
+            <div class="text-sm space-y-1.5">
+                <p><span class="font-semibold text-gray-700">Problem:</span> <span class="text-gray-600">{{ a.problem_description }}</span></p>
+                {% if a.root_cause %}<p><span class="font-semibold text-gray-700">Root Cause:</span> <span class="text-gray-600">{{ a.root_cause }}</span></p>{% endif %}
+                {% if a.corrective_action %}<p><span class="font-semibold text-gray-700">Action:</span> <span class="text-gray-600">{{ a.corrective_action }}</span></p>{% endif %}
+            </div>
+        </div>
+        {% else %}
+        <div class="text-center py-12 text-gray-400 text-sm">No analysis yet</div>
+        {% endfor %}
+        <div class="text-center pt-2"><a href="/fui/{{ fui.id }}/analysis/create" class="text-sm text-blue-600 hover:text-blue-800 font-medium">+ Add Analysis</a></div>
+    </div>
+</div>
+
+<div id="section-recommendation" style="display:none">
+    <div class="space-y-3">
+        {% for r in recommendations %}
+        <div class="card p-4">
+            <div class="flex items-center gap-2 mb-2 flex-wrap">
+                <span class="badge bg-indigo-50 text-indigo-700">{{ r.recommendation_type or 'General' }}</span>
+            </div>
+            <div class="text-sm space-y-1.5">
+                <p><span class="font-semibold text-gray-700">Instruction:</span> <span class="text-gray-600">{{ r.instruction }}</span></p>
+                {% if r.reason %}<p><span class="font-semibold text-gray-700">Reason:</span> <span class="text-gray-600">{{ r.reason }}</span></p>{% endif %}
+            </div>
+        </div>
+        {% else %}
+        <div class="text-center py-12 text-gray-400 text-sm">No recommendations yet</div>
+        {% endfor %}
+        <div class="text-center pt-2"><a href="/fui/{{ fui.id }}/recommendation/create" class="text-sm text-blue-600 hover:text-blue-800 font-medium">+ Add Recommendation</a></div>
+    </div>
+</div>
+
+<!-- DBR TAB -->
+<div id="section-dbr" style="display:none">
+    <div class="card p-4">
+        <div class="flex items-center justify-between mb-3">
+            <h2 class="text-sm font-semibold text-gray-900">🔧 DBR — CODE USM (10 data terakhir)</h2>
+        </div>
+        <div class="table-wrap">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr>
+                        <th class="px-3 py-2 text-left border-b font-medium text-gray-600 whitespace-nowrap">DATE</th>
+                        <th class="px-3 py-2 text-left border-b font-medium text-gray-600 whitespace-nowrap">CN</th>
+                        <th class="px-3 py-2 text-left border-b font-medium text-gray-600 whitespace-nowrap">TROUBLE DESCRIPTION</th>
+                        <th class="px-3 py-2 text-center border-b font-medium text-gray-600 whitespace-nowrap">HM_START</th>
+                        <th class="px-3 py-2 text-center border-b font-medium text-gray-600 whitespace-nowrap">LOCATION</th>
+                        <th class="px-3 py-2 text-left border-b font-medium text-gray-600 whitespace-nowrap">ACTION_TAKEN</th>
+                        <th class="px-3 py-2 text-center border-b font-medium text-gray-600 whitespace-nowrap">MECHANIC</th>
+                        <th class="px-3 py-2 text-center border-b font-medium text-gray-600 whitespace-nowrap">GL</th>
+                    </tr>
+                </thead>
+                <tbody id="dbrDetailBody">
+                    <tr><td colspan="8" class="text-center text-gray-400 py-8">Memuat...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- OIL LAB TAB -->
+<div id="section-oil" style="display:none">
+    <div class="card p-4">
+        <div class="flex items-center justify-between mb-3">
+            <h2 class="text-sm font-semibold text-gray-900">🛢 Oil Lab</h2>
+            <span class="text-xs text-gray-400" id="oilUnitCount"></span>
+        </div>
+        <div id="oilContainer">
+            <div class="text-center text-gray-400 py-4 text-sm">Memuat...</div>
+        </div>
+    </div>
+</div>
+
+<script>
+const unitNumber = '{{ unit_number }}';
+const ELEM_LABELS = ['Visc','Fuel','Soot','Oxi','Nitr','Wtr','Tbn','Si','Fe','Cu','Al','Cr','Pb','Na'];
+const ELEM_DB = ['visc','fuel','soot','oxi','nitr','water','tbn','si','fe','cu','al','cr','pb','na'];
+const ELEM_THRESH = { fe:50, cr:20, cu:30, pb:20, si:20, water:1, visc:80, soot:5 };
+
+function showTab(name) {
+    document.getElementById('section-analysis').style.display = name === 'analysis' ? '' : 'none';
+    document.getElementById('section-recommendation').style.display = name === 'recommendation' ? '' : 'none';
+    document.getElementById('section-dbr').style.display = name === 'dbr' ? '' : 'none';
+    document.getElementById('section-oil').style.display = name === 'oil' ? '' : 'none';
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-' + name).classList.add('active');
+
+    if (name === 'dbr') loadDBRDetail();
+    if (name === 'oil') loadOilDetail();
+}
+
+async function loadDBRDetail() {
+    const tbody = document.getElementById('dbrDetailBody');
+    tbody.innerHTML = '<tr><td colspan="8" class="text-center text-gray-400 py-8">Memuat...</td></tr>';
+    try {
+        const r = await fetch('/dbr-api/api/v1/breakdowns?cn=' + encodeURIComponent(unitNumber) + '&breakdown_code=USM&size=50');
+        const d = await r.json();
+        var items = d.items || [];
+        items = items.filter(function(r) { return (r.action_taken || '').toUpperCase() !== 'CONTINUE'; }).slice(0, 10);
+        document.getElementById('dbrCount').textContent = '(' + items.length + ')';
+        tbody.innerHTML = items.map(function(r) {
+            return '<tr class="hover:bg-blue-50 border-b">' +
+                '<td class="px-3 py-2 whitespace-nowrap text-xs">' + (r.report_date || '-') + '</td>' +
+                '<td class="px-3 py-2 font-medium text-xs">' + (r.cn || '-') + '</td>' +
+                '<td class="px-3 py-2 max-w-[250px] text-xs truncate" title="' + (r.trouble_description || '') + '">' + (r.trouble_description || '-') + '</td>' +
+                '<td class="px-3 py-2 text-center text-xs">' + (r.hm_start || '-') + '</td>' +
+                '<td class="px-3 py-2 text-center text-xs">' + (r.location || '-') + '</td>' +
+                '<td class="px-3 py-2 max-w-[200px] text-xs truncate" title="' + (r.action_taken || '') + '">' + (r.action_taken || '-') + '</td>' +
+                '<td class="px-3 py-2 text-center text-xs">' + (r.mechanic || '-') + '</td>' +
+                '<td class="px-3 py-2 text-center text-xs">' + (r.gl || '-') + '</td>' +
+                '</tr>';
+        }).join('');
+    } catch(e) {
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center text-red-500 py-8">Error: ' + e.message + '</td></tr>';
+    }
+}
+
+async function loadOilDetail() {
+    const oilContainer = document.getElementById('oilContainer');
+    oilContainer.innerHTML = '<div class="text-center text-gray-400 py-4 text-sm">Memuat unit...</div>';
+
+    try {
+        const unitUrl = '/oil-lab-api/api/samples/units?vessel=' + encodeURIComponent(unitNumber);
+        const ur = await fetch(unitUrl);
+        const ud = await ur.json();
+        var unitIds = Array.isArray(ud) ? ud : [];
+
+        // custom sort: Engine, Transmisi, Hydraulic, Axle, Differential, Final Drive, sisanya alphabet
+        var orderMap = { 'engine':0, 'transmisi':1, 'transmission':1, 'hydraulic':2, 'axle':3, 'differential':4, 'final drive':5, 'final drive left':6, 'final drive right':6, 'final drive left front':7, 'final drive left rear':8, 'final drive left center':9, 'final drive right front':10, 'final drive right rear':11, 'final drive right center':12 };
+        unitIds.sort(function(a, b) {
+            var ka = a.toLowerCase();
+            var kb = b.toLowerCase();
+            var ia = orderMap[ka];
+            var ib = orderMap[kb];
+            if (ia !== undefined && ib !== undefined) return ia - ib;
+            if (ia !== undefined) return -1;
+            if (ib !== undefined) return 1;
+            return ka.localeCompare(kb);
+        });
+
+        document.getElementById('oilUnitCount').textContent = unitIds.length + ' unit';
+        if (!unitIds.length) {
+            oilContainer.innerHTML = '<div class="text-center text-gray-400 py-8 text-sm">Tidak ada data oil</div>';
+            return;
+        }
+
+        oilContainer.innerHTML = '';
+        var totalRows = 0;
+
+        for (var ui = 0; ui < unitIds.length; ui++) {
+            var uid = unitIds[ui];
+
+            var detailUrl = '/oil-lab-api/api/samples/search?vessel=' + encodeURIComponent(unitNumber) + '&unit=' + encodeURIComponent(uid) + '&page=1&page_size=10';
+            var dr = await fetch(detailUrl);
+            var dd = await dr.json();
+            var rows = dd.items || [];
+            totalRows += rows.length;
+
+            var section = document.createElement('div');
+            if (ui > 0) section.className = 'mt-5 pt-4 border-t border-gray-200';
+
+            var header = document.createElement('div');
+            header.className = 'flex items-center gap-2 mb-2';
+            header.innerHTML = '<h3 class="text-sm font-semibold text-gray-800">' + uid + '</h3><span class="text-xs text-gray-400">' + rows.length + ' records</span>';
+            section.appendChild(header);
+
+            if (!rows.length) {
+                section.innerHTML += '<div class="text-xs text-gray-400 py-3">Tidak ada data</div>';
+                oilContainer.appendChild(section);
+                continue;
+            }
+
+            var wrap = document.createElement('div');
+            wrap.className = 'table-wrap';
+            var html = '<table class="w-full text-sm"><thead><tr>' +
+                '<th class="px-3 py-2 text-left border-b font-medium text-gray-600 whitespace-nowrap">DATE<br><span class="text-xs font-normal">Unit Time</span></th>' +
+                '<th class="px-3 py-2 text-center border-b font-medium text-gray-600 whitespace-nowrap" colspan="14">Visc · Fuel · Soot · Oxi · Nitr · Wtr · Tbn · Si · Fe · Cu · Al · Cr · Pb · Na</th>' +
+                '<th class="px-3 py-2 text-center border-b font-medium text-gray-600 whitespace-nowrap">CONDITION</th>' +
+                '</tr></thead><tbody>';
+
+            for (var i = 0; i < rows.length; i++) {
+                var r = rows[i];
+                var sdate = r.sample_date ? String(r.sample_date).substring(0,10) : '-';
+                var utime = r.unit_time || '-';
+                var cond = (r.condition||'').toLowerCase();
+                var condBg = cond === 'normal' ? 'bg-green-100 text-green-700' :
+                    cond.includes('crit') ? 'bg-red-100 text-red-700 font-bold' :
+                    cond.includes('abnormal') ? 'bg-yellow-100 text-yellow-700' :
+                    'bg-gray-100 text-gray-600';
+
+                var elemHtml = '<div class="grid grid-cols-7 gap-x-2 gap-y-1 text-xs" style="min-width:350px">';
+                var elemObj = {};
+                ['visc','fuel','soot','oxi','nitr','water','tbn','si','fe','cu','al','cr','pb','na'].forEach(function(k,i) { elemObj[k]=r[k]; });
+                for (var j = 0; j < ELEM_LABELS.length; j++) {
+                    var v = elemObj[ELEM_DB[j]];
+                    var n = parseFloat(v);
+                    var cl = '';
+                    if (n > 0) {
+                        var th = ELEM_THRESH[ELEM_DB[j]];
+                        if (th && n > th) cl = 'text-red-600 font-bold';
+                    }
+                    var display = isNaN(n) ? '-' : n.toFixed(1);
+                    elemHtml += '<div><span class="text-gray-400">' + ELEM_LABELS[j] + '</span> <span class="' + cl + '">' + display + '</span></div>';
+                }
+                elemHtml += '</div>';
+                html += '<tr class="hover:bg-blue-50 border-b">' +
+                    '<td class="px-3 py-2 whitespace-nowrap text-xs"><div>' + sdate + '</div><div class="text-xs text-gray-500">' + utime + '</div></td>' +
+                    '<td class="px-3 py-2" colspan="14">' + elemHtml + '</td>' +
+                    '<td class="px-3 py-2 text-center whitespace-nowrap"><span class="px-2 py-1 rounded text-xs ' + condBg + '">' + (r[16]||'-') + '</span></td>' +
+                    '</tr>';
+            }
+            html += '</tbody></table>';
+            wrap.innerHTML = html;
+            section.appendChild(wrap);
+            oilContainer.appendChild(section);
+        }
+
+        document.getElementById('oilCount').textContent = '(' + totalRows + ')';
+    } catch(e) {
+        oilContainer.innerHTML = '<div class="text-center text-red-500 py-8 text-sm">Error: ' + e.message + '</div>';
+    }
+}
+</script>
+{% endblock %}

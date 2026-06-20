@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}New Recommendation{% endblock %}
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <a href="/fui/{{ fui_id }}" class="inline-flex items-center gap-1 text-sm font-medium text-gray-500 hover:text-gray-700 mb-4">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+        Back
+    </a>
+    <div class="card p-6">
+        <div class="flex items-center gap-3 mb-6">
+            <div class="w-10 h-10 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-md shadow-purple-200 shrink-0">
+                <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+            </div>
+            <div>
+                <h1 class="text-lg font-bold text-gray-900">New Recommendation</h1>
+                <p class="text-xs text-gray-500">Add recommendation to this FUI</p>
+            </div>
+        </div>
+        <form method="POST" action="/fui/{{ fui_id }}/recommendation/create" class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Type <span class="text-red-500">*</span></label>
+                <input type="text" name="recommendation_type" required class="input-field" placeholder="e.g. Corrective, Preventive">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Instruction <span class="text-red-500">*</span></label>
+                <textarea name="instruction" required rows="3" class="input-field"></textarea>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Reason</label>
+                <textarea name="reason" rows="2" class="input-field"></textarea>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Source</label>
+                <input type="text" name="source" class="input-field" placeholder="e.g. SOP-001">
+            </div>
+            <button type="submit" class="btn-primary w-full justify-center">Save</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}FUI List - FUI Management{% endblock %}
+{% block content %}
+{% set sc = {'DRAFT':'bg-gray-100 text-gray-700','SUBMITTED':'bg-blue-50 text-blue-700','REVIEWED':'bg-yellow-50 text-yellow-700','APPROVED':'bg-green-50 text-green-700','EXECUTED':'bg-purple-50 text-purple-700','CLOSED':'bg-slate-100 text-slate-700'} %}
+
+<div class="flex items-center justify-between mb-5">
+    <div>
+        <h1 class="text-2xl font-bold text-gray-900">FUI List</h1>
+        <p class="text-gray-500 text-sm mt-0.5">{{ total }} record{{ 's' if total != 1 else '' }}</p>
+    </div>
+    <a href="/fui/create" class="btn-primary text-sm">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+        <span class="hidden sm:inline">New FUI</span>
+    </a>
+</div>
+
+<div class="flex gap-2 mb-4 overflow-x-auto pb-1">
+    <form method="GET" action="/fui" class="flex gap-2">
+        <select name="status" onchange="this.form.submit()" class="input-field text-sm min-w-[130px]">
+            <option value="">All Status</option>
+            {% for s in ['DRAFT','SUBMITTED','REVIEWED','APPROVED','EXECUTED','CLOSED'] %}
+            <option value="{{ s }}" {% if status == s %}selected{% endif %}>{{ s }}</option>
+            {% endfor %}
+        </select>
+        {% if status %}
+        <a href="/fui" class="btn-sm bg-gray-100 text-gray-600">Clear</a>
+        {% endif %}
+    </form>
+</div>
+
+<div class="card">
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr><th>FUI #</th><th>Unit</th><th>Priority</th><th>Status</th><th>Date</th><th></th></tr>
+            </thead>
+            <tbody>
+                {% for f in items %}
+                <tr>
+                    <td class="font-semibold text-gray-900">{{ f.fui_number }}</td>
+                    <td class="text-gray-600">{{ f.unit_number }}</td>
+                    <td>
+                        {% if f.priority_level in ('HIGH','CRITICAL') %}
+                        <span class="badge bg-red-50 text-red-700">{{ f.priority_level }}</span>
+                        {% elif f.priority_level == 'MEDIUM' %}
+                        <span class="badge bg-yellow-50 text-yellow-700">MED</span>
+                        {% else %}
+                        <span class="badge bg-gray-50 text-gray-600">{{ f.priority_level or '-' }}</span>
+                        {% endif %}
+                    </td>
+                    <td><span class="badge {{ sc[f.status] }}">{{ f.status }}</span></td>
+                    <td class="text-gray-500 text-sm">{{ f.created_at[:10] if f.created_at else '-' }}</td>
+                    <td class="text-right"><a href="/fui/{{ f.id }}" class="btn-sm bg-blue-50 text-blue-600 hover:bg-blue-100">Detail</a></td>
+                </tr>
+                {% else %}
+                <tr><td colspan="6" class="text-center py-16 text-gray-400">No records</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% if max_page > 1 %}
+    <div class="flex items-center justify-between px-5 py-3 border-t border-gray-100 bg-gray-50/50">
+        <span class="text-sm text-gray-500">Page {{ page }} of {{ max_page }}</span>
+        <div class="flex gap-2">
+            {% if page > 1 %}<a href="/fui?page={{ page-1 }}&status={{ status }}" class="btn-sm bg-white border border-gray-200 text-gray-600">&larr; Prev</a>{% endif %}
+            {% if page < max_page %}<a href="/fui?page={{ page+1 }}&status={{ status }}" class="btn-sm bg-white border border-gray-200 text-gray-600">Next &rarr;</a>{% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
