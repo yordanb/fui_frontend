@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, session, redirect, url_for, current_app, flash
+from flask import Blueprint, render_template, request, session, redirect, url_for, current_app, flash, Response
 import requests
 
 main_bp = Blueprint('main', __name__)
@@ -8,6 +8,21 @@ def _api_get(endpoint, params=None):
     r = requests.get(f'{current_app.config["API_BASE"]}{endpoint}', headers=headers, params=params, timeout=10)
     r.raise_for_status()
     return r.json()
+
+def _proxy_request(method, endpoint, body=None):
+    headers = {'Authorization': f'Bearer {session["token"]}'}
+    if body is not None:
+        headers['Content-Type'] = 'application/json'
+    url = f'{current_app.config["API_BASE"]}{endpoint}'
+    fn = getattr(requests, method.lower())
+    if body is not None:
+        r = fn(url, headers=headers, json=body, timeout=10)
+    else:
+        r = fn(url, headers=headers, timeout=10)
+    excluded = ('content-encoding', 'transfer-encoding', 'content-length', 'connection')
+    resp_headers = {k: v for k, v in r.headers.items() if k.lower() not in excluded}
+    return Response(r.content, status=r.status_code, headers=resp_headers)
+
 
 @main_bp.route('/dashboard')
 def dashboard():
@@ -29,6 +44,8 @@ def dashboard():
         flash(f'Error: {e}', 'error')
         return render_template('dashboard.html', total=0, recent=[], stats={})
 
+
+# ─── Users page (all roles) ───
 @main_bp.route('/users')
 def users():
     if 'token' not in session:
@@ -40,6 +57,47 @@ def users():
         flash('Failed to load users', 'error')
         return render_template('users.html', users=[])
 
+
+# ─── User CRUD API proxy (TE only for write) ───
+@main_bp.route('/users/api/users', methods=['GET', 'POST'])
+def user_list_create():
+    if 'token' not in session:
+        return {'error': 'unauthorized'}, 401
+    if request.method == 'GET':
+        try:
+            return _api_get('/users/')
+        except Exception as e:
+            return {'error': str(e)}, 500
+    # POST — only TE can create
+    if 'TE' not in session.get('user', {}).get('roles', []):
+        return {'error': 'forbidden — TE role required'}, 403
+    try:
+        body = request.get_json(force=True)
+        return _proxy_request('POST', '/users/', body)
+    except Exception as e:
+        return {'error': str(e)}, 500
+
+
+@main_bp.route('/users/api/users/<int:user_id>', methods=['GET', 'PUT', 'DELETE'])
+def user_detail(user_id):
+    if 'token' not in session:
+        return {'error': 'unauthorized'}, 401
+    if request.method == 'GET':
+        try:
+            return _api_get(f'/users/{user_id}')
+        except Exception as e:
+            return {'error': str(e)}, 500
+    # PUT/DELETE — only TE
+    if 'TE' not in session.get('user', {}).get('roles', []):
+        return {'error': 'forbidden — TE role required'}, 403
+    try:
+        body = request.get_json(force=True) if request.method == 'PUT' else None
+        return _proxy_request(request.method, f'/users/{user_id}', body)
+    except Exception as e:
+        return {'error': str(e)}, 500
+
+
+# ─── FUI ───
 @main_bp.route('/fui')
 def fui_list():
     if 'token' not in session:
@@ -57,6 +115,7 @@ def fui_list():
     except:
         flash('Failed to load FUI list', 'error')
         return render_template('fui_list.html', items=[], total=0, page=1, max_page=1, status=status)
+
 
 @main_bp.route('/fui/<int:fui_id>')
 def fui_detail(fui_id):
