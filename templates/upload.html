@@ -1,0 +1,261 @@
+{% extends "base.html" %}
+{% block title %}File Upload{% endblock %}
+{% block content %}
+<div class="mb-4">
+    <h1 class="text-lg font-bold text-gray-900">📤 File Upload</h1>
+    <p class="text-gray-500 text-xs">Upload file Excel untuk berbagai kebutuhan sistem</p>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="serviceCards">
+    {% for key, svc in services.items() %}
+    <div class="card p-5 hover:shadow-md transition-shadow cursor-pointer group" onclick="selectService('{{ key }}')">
+        <div class="flex items-start gap-3">
+            <div class="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-lg shrink-0 group-hover:bg-blue-100 transition-colors">
+                {{ svc.label.split(' ')[0] }}
+            </div>
+            <div class="flex-1 min-w-0">
+                <h3 class="text-sm font-semibold text-gray-800">{{ svc.label }}</h3>
+                <p class="text-xs text-gray-500 mt-0.5 leading-relaxed">{{ svc.description }}</p>
+                <div class="mt-2">
+                    <span class="badge bg-blue-50 text-blue-600 text-[10px]">{{ svc.accept }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Drop Zone (hidden until service selected) -->
+<div id="uploadArea" class="hidden mt-6">
+    <div class="card p-6">
+        <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center gap-2">
+                <span id="selectedIcon" class="text-lg"></span>
+                <h2 class="text-sm font-semibold text-gray-800" id="selectedLabel"></h2>
+            </div>
+            <button onclick="deselectService()" class="text-xs text-gray-400 hover:text-gray-600">✕ Batal</button>
+        </div>
+
+        <div id="dropZone" class="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-blue-400 transition-colors cursor-pointer bg-gray-50/50">
+            <svg class="w-10 h-10 mx-auto text-gray-300 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+            </svg>
+            <p class="text-sm text-gray-500" id="dropText">Drop file .xlsx di sini atau klik untuk browse</p>
+            <p class="text-xs text-gray-400 mt-1">Format: .xlsx maks. 50MB</p>
+            <input type="file" id="fileInput" accept=".xlsx" class="hidden" onchange="handleFileSelect(this.files[0])">
+        </div>
+
+        <!-- File info -->
+        <div id="fileInfo" class="hidden mt-4 flex items-center gap-3 p-3 bg-gray-50 rounded-lg text-sm">
+            <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center text-blue-600 shrink-0">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+            </div>
+            <div class="flex-1 min-w-0">
+                <div class="font-medium text-gray-800 truncate" id="fileName">-</div>
+                <div class="text-xs text-gray-400" id="fileSize">-</div>
+            </div>
+            <button onclick="startUpload()" id="uploadBtn" class="btn-primary text-xs py-2 px-4 shrink-0">Upload</button>
+        </div>
+
+        <!-- Progress -->
+        <div id="uploadProgress" class="hidden mt-4">
+            <div class="flex items-center gap-2 mb-2">
+                <div class="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                <span class="text-sm text-gray-600" id="uploadStatus">Mengupload...</span>
+            </div>
+            <div class="w-full bg-gray-100 rounded-full h-2">
+                <div id="uploadBar" class="bg-blue-600 h-2 rounded-full transition-all duration-300" style="width:0%"></div>
+            </div>
+        </div>
+
+        <!-- Result -->
+        <div id="uploadResult" class="hidden mt-4 p-4 rounded-xl text-sm"></div>
+    </div>
+</div>
+
+<!-- Upload history / kebutuhan file -->
+<div class="mt-6">
+    <h2 class="text-sm font-semibold text-gray-700 mb-3">📋 Kebutuhan Penggunaan File</h2>
+    <div class="card overflow-hidden">
+        <table class="w-full text-sm">
+            <thead>
+                <tr>
+                    <th class="px-4 py-2.5 text-left border-b font-semibold text-gray-500 text-[11px] uppercase tracking-wider bg-gray-50/50">Kebutuhan</th>
+                    <th class="px-4 py-2.5 text-left border-b font-semibold text-gray-500 text-[11px] uppercase tracking-wider bg-gray-50/50">Tipe File</th>
+                    <th class="px-4 py-2.5 text-left border-b font-semibold text-gray-500 text-[11px] uppercase tracking-wider bg-gray-50/50">Keterangan</th>
+                </tr>
+            </thead>
+            <tbody class="text-xs text-gray-600">
+                <tr class="border-b border-gray-50">
+                    <td class="px-4 py-3 font-medium">🛢 Oil Lab</td>
+                    <td class="px-4 py-3">.xlsx</td>
+                    <td class="px-4 py-3">Data analisa sampel oil — viskositas, fuel dilution, soot, dll</td>
+                </tr>
+                <tr class="border-b border-gray-50">
+                    <td class="px-4 py-3 font-medium">🔧 DBR</td>
+                    <td class="px-4 py-3">.xlsx</td>
+                    <td class="px-4 py-3">Daily Breakdown Report — data breakdown unit (IMMOCS/FUI format, auto-detect)</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const SERVICES = {
+    {% for key, svc in services.items() %}
+    '{{ key }}': {
+        label: '{{ svc.label }}',
+        description: '{{ svc.description }}',
+        accept: '{{ svc.accept }}',
+        endpoint: '/upload-api/{{ key }}',
+    },
+    {% endfor %}
+};
+let selectedService = null;
+
+function selectService(key) {
+    selectedService = key;
+    const svc = SERVICES[key];
+    document.getElementById('serviceCards').classList.add('hidden');
+    document.getElementById('uploadArea').classList.remove('hidden');
+    document.getElementById('selectedIcon').textContent = svc.label.split(' ')[0];
+    document.getElementById('selectedLabel').textContent = svc.label;
+    document.getElementById('dropText').textContent = `Upload ${svc.label} — drop file ${svc.accept} atau klik`;
+}
+
+function deselectService() {
+    selectedService = null;
+    document.getElementById('serviceCards').classList.remove('hidden');
+    document.getElementById('uploadArea').classList.add('hidden');
+    resetUploadUI();
+}
+
+// ---- Drag & Drop ----
+const dropZone = document.getElementById('dropZone');
+dropZone.addEventListener('click', function() { document.getElementById('fileInput').click(); });
+dropZone.addEventListener('dragover', function(e) {
+    e.preventDefault();
+    dropZone.classList.add('border-blue-500', 'bg-blue-50/30');
+});
+dropZone.addEventListener('dragleave', function() {
+    dropZone.classList.remove('border-blue-500', 'bg-blue-50/30');
+});
+dropZone.addEventListener('drop', function(e) {
+    e.preventDefault();
+    dropZone.classList.remove('border-blue-500', 'bg-blue-50/30');
+    const file = e.dataTransfer.files[0];
+    if (file) showFileInfo(file);
+});
+
+function handleFileSelect(file) {
+    if (file) showFileInfo(file);
+}
+
+function showFileInfo(file) {
+    document.getElementById('fileInfo').classList.remove('hidden');
+    document.getElementById('fileName').textContent = file.name;
+    document.getElementById('fileSize').textContent = formatSize(file.size);
+    window._selectedFile = file;
+}
+
+function formatSize(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+}
+
+function resetUploadUI() {
+    document.getElementById('fileInput').value = '';
+    document.getElementById('fileInfo').classList.add('hidden');
+    document.getElementById('uploadProgress').classList.add('hidden');
+    document.getElementById('uploadResult').classList.add('hidden');
+    document.getElementById('uploadBar').style.width = '0%';
+    window._selectedFile = null;
+}
+
+// ---- Upload ----
+function startUpload() {
+    const file = window._selectedFile;
+    if (!file) return;
+    if (!file.name.endsWith('.xlsx')) {
+        showResult('error', 'Hanya file .xlsx yang diterima');
+        return;
+    }
+
+    const svc = SERVICES[selectedService];
+
+    document.getElementById('uploadProgress').classList.remove('hidden');
+    document.getElementById('uploadResult').classList.add('hidden');
+    document.getElementById('uploadStatus').textContent = 'Uploading ' + file.name + '...';
+    document.getElementById('uploadBar').style.width = '20%';
+    document.getElementById('dropZone').classList.add('pointer-events-none', 'opacity-40');
+    document.getElementById('uploadBtn').disabled = true;
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    fetch(svc.endpoint, {
+        method: 'POST',
+        body: formData,
+    })
+    .then(function(resp) { document.getElementById('uploadBar').style.width = '90%'; return resp.json(); })
+    .then(function(result) {
+        document.getElementById('uploadBar').style.width = '100%';
+
+        if (result.status === 'success' || result.status === 'ok') {
+            var msg = '<strong class="text-sm">✅ Upload Berhasil</strong><br>' +
+                      (result.filename || file.name) + '<br>';
+            if (result.total_rows) msg += '<span class="font-semibold">' + result.total_rows + '</span> baris di-import';
+            if (result.inserted) msg += ' (' + result.inserted + ' baru';
+            if (result.updated) msg += ', ' + result.updated + ' updated';
+            msg += (result.skipped ? ', ' + result.skipped + ' skip' : '') + ')';
+            showResult('success', msg);
+        } else if (result.status === 'duplicate_file') {
+            showResult('warning',
+                '<strong>⚠️ File Duplikat</strong><br>' +
+                result.filename + ' — sudah pernah diupload (' + (result.total_rows || '?') + ' baris)'
+            );
+        } else if (result.status === 'empty_file') {
+            showResult('error',
+                '<strong>⚠️ File Kosong / Format Tidak Cocok</strong><br>' +
+                'Tidak ada data bisa dipastikan format .xlsx sesuai.'
+            );
+        } else if (result.error) {
+            showResult('error', 'Error: ' + result.error);
+        } else {
+            showResult('info', JSON.stringify(result, null, 2));
+        }
+
+        setTimeout(function() {
+            document.getElementById('uploadProgress').classList.add('hidden');
+            document.getElementById('dropZone').classList.remove('pointer-events-none', 'opacity-40');
+            document.getElementById('uploadBtn').disabled = false;
+        }, 3000);
+    })
+    .catch(function(err) {
+        showResult('error', 'Error: ' + err.message);
+        document.getElementById('uploadProgress').classList.add('hidden');
+        document.getElementById('dropZone').classList.remove('pointer-events-none', 'opacity-40');
+        document.getElementById('uploadBtn').disabled = false;
+    });
+}
+
+function showResult(type, html) {
+    var el = document.getElementById('uploadResult');
+    el.classList.remove('hidden');
+    var colors = {
+        success: 'bg-green-50 text-green-800 border border-green-200',
+        warning: 'bg-yellow-50 text-yellow-800 border border-yellow-200',
+        error: 'bg-red-50 text-red-800 border border-red-200',
+        info: 'bg-blue-50 text-blue-800 border border-blue-200',
+    };
+    el.className = 'mt-4 p-4 rounded-xl text-sm ' + (colors[type] || colors.info);
+    el.innerHTML = html;
+}
+</script>
+{% endblock %}

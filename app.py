@@ -6,6 +6,7 @@ from routes.main_routes import main_bp
 from routes.oil_lab import oil_bp
 from routes.dbr import dbr_bp
 from routes.api_proxy import api_proxy_bp
+from routes.upload import upload_bp
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', os.urandom(32).hex())
@@ -18,6 +19,7 @@ app.register_blueprint(fui_bp, url_prefix='/fui')
 app.register_blueprint(main_bp)
 app.register_blueprint(oil_bp)
 app.register_blueprint(dbr_bp)
+app.register_blueprint(upload_bp)
 app.register_blueprint(api_proxy_bp)
 
 @app.route('/')

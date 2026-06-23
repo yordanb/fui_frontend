@@ -58,6 +58,7 @@
                     <a href="/oil-lab" class="nav-link px-3 py-2 rounded-lg text-sm font-medium {% if request.path == '/oil-lab' %}bg-blue-50 text-blue-700{% else %}text-gray-600 hover:bg-gray-100{% endif %}">Oil Lab</a>
                     <a href="/dbr" class="nav-link px-3 py-2 rounded-lg text-sm font-medium {% if request.path == '/dbr' %}bg-blue-50 text-blue-700{% else %}text-gray-600 hover:bg-gray-100{% endif %}">DBR</a>
                     <a href="/fui" class="nav-link px-3 py-2 rounded-lg text-sm font-medium {% if '/fui' in request.path and request.path != '/fui/create' %}bg-blue-50 text-blue-700{% else %}text-gray-600 hover:bg-gray-100{% endif %}">FUI</a>
+                    <a href="/upload" class="nav-link px-3 py-2 rounded-lg text-sm font-medium {% if request.path == '/upload' %}bg-blue-50 text-blue-700{% else %}text-gray-600 hover:bg-gray-100{% endif %}">Upload</a>
                     <a href="/fui/create" class="nav-link px-3 py-2 rounded-lg text-sm font-medium {% if '/fui/create' in request.path %}bg-blue-50 text-blue-700{% else %}text-gray-600 hover:bg-gray-100{% endif %}">+ New</a>
                     {% if session.user and 'ADMIN_TE' in session.user.roles %}
                     <a href="/users" class="nav-link px-3 py-2 rounded-lg text-sm font-medium {% if '/users' in request.path %}bg-blue-50 text-blue-700{% else %}text-gray-600 hover:bg-gray-100{% endif %}">Users</a>
@@ -85,6 +86,7 @@
             <a href="/oil-lab" class="block px-3 py-2.5 rounded-lg text-sm font-medium {% if request.path == '/oil-lab' %}bg-blue-50 text-blue-700{% else %}text-gray-600 hover:bg-gray-100{% endif %}">Oil Lab</a>
             <a href="/dbr" class="block px-3 py-2.5 rounded-lg text-sm font-medium {% if request.path == '/dbr' %}bg-blue-50 text-blue-700{% else %}text-gray-600 hover:bg-gray-100{% endif %}">DBR</a>
             <a href="/fui" class="block px-3 py-2.5 rounded-lg text-sm font-medium {% if '/fui' in request.path and request.path != '/fui/create' %}bg-blue-50 text-blue-700{% else %}text-gray-600 hover:bg-gray-100{% endif %}">FUI List</a>
+            <a href="/upload" class="block px-3 py-2.5 rounded-lg text-sm font-medium {% if request.path == '/upload' %}bg-blue-50 text-blue-700{% else %}text-gray-600 hover:bg-gray-100{% endif %}">Upload</a>
             <a href="/fui/create" class="block px-3 py-2.5 rounded-lg text-sm font-medium {% if '/fui/create' in request.path %}bg-blue-50 text-blue-700{% else %}text-gray-600 hover:bg-gray-100{% endif %}">New FUI</a>
             {% if session.user and 'ADMIN_TE' in session.user.roles %}
             <a href="/users" class="block px-3 py-2.5 rounded-lg text-sm font-medium {% if '/users' in request.path %}bg-blue-50 text-blue-700{% else %}text-gray-600 hover:bg-gray-100{% endif %}">Users</a>
