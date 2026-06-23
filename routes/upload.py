@@ -46,10 +46,11 @@ def upload_proxy(service):
     url = svc['backend'] + svc['endpoint']
 
     try:
+        file_content = file.read()
         resp = requests.post(
             url,
-            files={'file': (file.filename, file.stream, file.content_type)},
-            timeout=120,
+            files={'file': (file.filename, file_content, file.content_type or 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')},
+            timeout=180,
         )
         excluded = ('content-encoding', 'transfer-encoding', 'content-length', 'connection')
         resp_headers = {k: v for k, v in resp.headers.items() if k.lower() not in excluded}

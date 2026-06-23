@@ -60,7 +60,7 @@
                     <a href="/fui" class="nav-link px-3 py-2 rounded-lg text-sm font-medium {% if '/fui' in request.path and request.path != '/fui/create' %}bg-blue-50 text-blue-700{% else %}text-gray-600 hover:bg-gray-100{% endif %}">FUI</a>
                     <a href="/upload" class="nav-link px-3 py-2 rounded-lg text-sm font-medium {% if request.path == '/upload' %}bg-blue-50 text-blue-700{% else %}text-gray-600 hover:bg-gray-100{% endif %}">Upload</a>
                     <a href="/fui/create" class="nav-link px-3 py-2 rounded-lg text-sm font-medium {% if '/fui/create' in request.path %}bg-blue-50 text-blue-700{% else %}text-gray-600 hover:bg-gray-100{% endif %}">+ New</a>
-                    {% if session.user and 'ADMIN_TE' in session.user.roles %}
+                    {% if session.user and 'TE' in session.user.roles %}
                     <a href="/users" class="nav-link px-3 py-2 rounded-lg text-sm font-medium {% if '/users' in request.path %}bg-blue-50 text-blue-700{% else %}text-gray-600 hover:bg-gray-100{% endif %}">Users</a>
                     {% endif %}
                 </div>
@@ -88,7 +88,7 @@
             <a href="/fui" class="block px-3 py-2.5 rounded-lg text-sm font-medium {% if '/fui' in request.path and request.path != '/fui/create' %}bg-blue-50 text-blue-700{% else %}text-gray-600 hover:bg-gray-100{% endif %}">FUI List</a>
             <a href="/upload" class="block px-3 py-2.5 rounded-lg text-sm font-medium {% if request.path == '/upload' %}bg-blue-50 text-blue-700{% else %}text-gray-600 hover:bg-gray-100{% endif %}">Upload</a>
             <a href="/fui/create" class="block px-3 py-2.5 rounded-lg text-sm font-medium {% if '/fui/create' in request.path %}bg-blue-50 text-blue-700{% else %}text-gray-600 hover:bg-gray-100{% endif %}">New FUI</a>
-            {% if session.user and 'ADMIN_TE' in session.user.roles %}
+            {% if session.user and 'TE' in session.user.roles %}
             <a href="/users" class="block px-3 py-2.5 rounded-lg text-sm font-medium {% if '/users' in request.path %}bg-blue-50 text-blue-700{% else %}text-gray-600 hover:bg-gray-100{% endif %}">Users</a>
             {% endif %}
             <div class="border-t border-gray-100 mt-2 pt-3 flex items-center gap-2 px-3 text-sm text-gray-500">
@@ -124,6 +124,9 @@
         document.getElementById('mobileNav').classList.toggle('open');
     }
     </script>
+    {% if session.user %}
+    <div id="userRoles" data-roles="{{ session.user.roles|default([])|join(',') }}" style="display:none"></div>
+    {% endif %}
     {% block extra_js %}{% endblock %}
 </body>
 </html>
