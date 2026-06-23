@@ -229,8 +229,9 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<script src="/static/js/chart.min.js" defer></script>
 <script>
+/* DBR Dashboard JS */
 const API = '/dbr-api';
 let page = 0;
 let lastResult = null;
@@ -518,7 +519,7 @@ async function loadDBR() {
 }
 
 async function fetchPage(params) {
-    const size = parseInt(document.getElementById('pageSize').value) || 50;
+    const size = parseInt(document.getElementById("pageSize").value) || 50;
     const p = Object.assign({}, params, { page: page + 1, size: size });
     const qs = new URLSearchParams(p).toString();
     try {
@@ -553,7 +554,7 @@ function renderTable(items) {
         var mo = r.mo_number || '';
         if (mo && mo.length > 8) mo = mo.slice(0,8) + '…';
         return '<tr class="hover:bg-blue-50/50 border-b border-gray-50 transition-colors cursor-pointer" onclick="toggleDetail(this)">' +
-            '<td class="px-3 py-2.5 text-xs text-gray-400 font-mono">' + ((page * (parseInt(document.getElementById(\'pageSize\').value)||50)) + i + 1) + '</td>' +
+            '<td class="px-3 py-2.5 text-xs text-gray-400 font-mono">' + ((page * (parseInt(document.getElementById("pageSize").value)||50)) + i + 1) + '</td>' +
             '<td class="px-3 py-2.5 whitespace-nowrap"><div class="text-xs font-semibold text-gray-800">' + (r.report_date || '-') + '</div></td>' +
             '<td class="px-3 py-2.5 whitespace-nowrap"><div class="font-medium text-xs text-gray-900">' + (r.cn || '-') + '</div></td>' +
             '<td class="px-3 py-2.5 whitespace-nowrap"><div class="text-xs">' + (r.crew_type || r.section || '-') + '</div></td>' +
