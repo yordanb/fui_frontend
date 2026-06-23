@@ -1,110 +1,229 @@
 {% extends "base.html" %}
-{% block title %}DBR - FUI Management{% endblock %}
+{% block title %}DBR Dashboard{% endblock %}
 {% block content %}
-<div class="mb-4">
-    <h1 class="text-xl font-bold text-gray-900">🔧 DBR Dashboard</h1>
-    <p class="text-gray-500 text-xs">Daily Breakdown Report analytics</p>
-</div>
-
-<!-- STATS ROW -->
-<div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4" id="statsRow">
-    <div class="card p-4">
-        <div class="text-xs text-gray-400">Total Records</div>
-        <div class="text-2xl font-bold text-blue-700" id="statTotal">-</div>
+<div class="mb-4 flex items-center justify-between">
+    <div>
+        <h1 class="text-lg font-bold text-gray-900">🔧 Daily Breakdown Report</h1>
+        <p class="text-gray-500 text-xs">Manajemen data breakdown dari file Excel</p>
     </div>
-    <div class="card p-4">
-        <div class="text-xs text-gray-400">Unique CN</div>
-        <div class="text-2xl font-bold text-green-700" id="statCn">-</div>
-    </div>
-    <div class="card p-4">
-        <div class="text-xs text-gray-400">Total Breakdowns</div>
-        <div class="text-2xl font-bold text-orange-700" id="statBreakdowns">-</div>
-    </div>
-    <div class="card p-4">
-        <div class="text-xs text-gray-400">Filtered</div>
-        <div class="text-2xl font-bold text-purple-700" id="statFiltered">-</div>
+    <div class="flex gap-2">
+        <a href="#import-tab" onclick="switchTab('import')" class="btn-sm bg-[#ff6b6b] text-white font-medium hover:bg-[#ff5252] flex items-center gap-1.5">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+            Import
+        </a>
+        <button onclick="exportCSV()" class="btn-sm bg-green-100 text-green-700 hover:bg-green-200 font-medium flex items-center gap-1.5">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            Export CSV
+        </button>
     </div>
 </div>
 
-<!-- CHARTS ROW -->
-<div class="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-4">
-    <div class="card p-4">
-        <h2 class="text-sm font-semibold text-gray-900 mb-3">📈 Monthly Trend</h2>
-        <div class="relative" style="height:200px">
-            <canvas id="monthlyCanvas"></canvas>
-        </div>
-    </div>
-    <div class="card p-4">
-        <h2 class="text-sm font-semibold text-gray-900 mb-3">🏆 Top CN</h2>
-        <div class="relative" style="height:200px">
-            <canvas id="topCnCanvas"></canvas>
-        </div>
-    </div>
+<!-- TABS -->
+<div class="flex gap-0 mb-4 border-b border-gray-200 overflow-x-auto scrollbar-hide">
+    <button class="tab-btn active" data-tab="data" onclick="switchTab('data')">📋 Data</button>
+    <button class="tab-btn" data-tab="charts" onclick="switchTab('charts')">📊 Charts</button>
+    <button class="tab-btn" data-tab="import" onclick="switchTab('import')">📤 Import</button>
 </div>
 
-<!-- FILTERS -->
-<div class="card p-4 mb-4">
-    <h2 class="text-sm font-semibold text-gray-900 mb-3">🔍 Filter</h2>
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
-        <div>
-            <label class="text-xs font-medium text-gray-600">CN</label>
-            <input id="fCn" class="input-field mt-1" placeholder="Ketik CN..." autocomplete="off">
+<!-- TAB: DATA -->
+<div id="tab-data" class="tab-content">
+    <!-- STATS ROW -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4" id="statsRow">
+        <div class="card p-4 relative overflow-hidden">
+            <div class="absolute top-0 right-0 w-16 h-16 bg-blue-50 rounded-bl-full"></div>
+            <div class="text-xs text-gray-400 font-medium">Total Records</div>
+            <div class="text-2xl font-bold text-blue-700 mt-1" id="statTotal">-</div>
+            <div class="text-xs text-gray-300 mt-0.5">di database</div>
         </div>
-        <div>
-            <label class="text-xs font-medium text-gray-600">Breakdown Code</label>
-            <select id="fCode" class="input-field mt-1 bg-white">
-                <option value="">Semua</option>
-            </select>
+        <div class="card p-4 relative overflow-hidden">
+            <div class="absolute top-0 right-0 w-16 h-16 bg-green-50 rounded-bl-full"></div>
+            <div class="text-xs text-gray-400 font-medium">Unique CN</div>
+            <div class="text-2xl font-bold text-green-700 mt-1" id="statCn">-</div>
+            <div class="text-xs text-gray-300 mt-0.5">unit</div>
         </div>
-        <div>
-            <label class="text-xs font-medium text-gray-600">Tgl Mulai</label>
-            <input type="date" id="fDateFrom" class="input-field mt-1">
+        <div class="card p-4 relative overflow-hidden">
+            <div class="absolute top-0 right-0 w-16 h-16 bg-orange-50 rounded-bl-full"></div>
+            <div class="text-xs text-gray-400 font-medium">Total Breakdowns</div>
+            <div class="text-2xl font-bold text-orange-700 mt-1" id="statBreakdowns">-</div>
+            <div class="text-xs text-gray-300 mt-0.5">tercatat</div>
         </div>
-        <div>
-            <label class="text-xs font-medium text-gray-600">Tgl Sampai</label>
-            <input type="date" id="fDateTo" class="input-field mt-1">
+        <div class="card p-4 relative overflow-hidden">
+            <div class="absolute top-0 right-0 w-16 h-16 bg-purple-50 rounded-bl-full"></div>
+            <div class="text-xs text-gray-400 font-medium">Filtered</div>
+            <div class="text-2xl font-bold text-purple-700 mt-1" id="statFiltered">-</div>
+            <div class="text-xs text-gray-300 mt-0.5">baris</div>
         </div>
     </div>
-    <div class="flex gap-3 mt-3">
-        <button onclick="loadDBR()" class="btn-primary text-sm">🔎 Terapkan Filter</button>
-        <button onclick="resetFilter()" class="btn-sm bg-gray-200 text-gray-600 hover:bg-gray-300">Reset</button>
-        <span class="text-xs text-gray-400 self-center">Enter untuk filter</span>
-    </div>
-</div>
 
-<!-- DATA TABLE -->
-<div class="card p-4">
-    <div class="flex items-center justify-between mb-3">
-        <h2 class="text-sm font-semibold text-gray-900">📋 Data Breakdown</h2>
-        <div class="flex items-center gap-2">
-            <span class="text-xs text-gray-400" id="pageInfo">Halaman 1</span>
-            <button onclick="prevPage()" class="btn-sm bg-gray-100 hover:bg-gray-200">←</button>
-            <button onclick="nextPage()" class="btn-sm bg-gray-100 hover:bg-gray-200">→</button>
+    <!-- FILTERS -->
+    <div class="card p-4 mb-4">
+        <div class="flex items-center gap-2 mb-3">
+            <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/></svg>
+            <span class="text-sm font-semibold text-gray-700">Filter</span>
+            <span id="filterCount" class="text-xs text-gray-400 ml-1"></span>
+        </div>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div>
+                <label class="text-xs font-medium text-gray-500 mb-1 block">CN</label>
+                <input id="fCn" class="input-field" placeholder="Ketik CN..." autocomplete="off" list="cnList">
+                <datalist id="cnList"></datalist>
+            </div>
+            <div>
+                <label class="text-xs font-medium text-gray-500 mb-1 block">Breakdown Code</label>
+                <select id="fCode" class="input-field bg-white">
+                    <option value="">Semua</option>
+                </select>
+            </div>
+            <div>
+                <label class="text-xs font-medium text-gray-500 mb-1 block">Tgl Mulai</label>
+                <input type="date" id="fDateFrom" class="input-field">
+            </div>
+            <div>
+                <label class="text-xs font-medium text-gray-500 mb-1 block">Tgl Sampai</label>
+                <input type="date" id="fDateTo" class="input-field">
+            </div>
+        </div>
+        <div class="flex gap-2 mt-3">
+            <button onclick="loadDBR()" class="btn-primary text-xs py-2 px-4">🔎 Terapkan</button>
+            <button onclick="resetFilter()" class="btn-sm bg-gray-100 text-gray-600 hover:bg-gray-200">Reset</button>
         </div>
     </div>
+
+    <!-- FILTER CHIPS -->
     <div id="filterChips" class="flex flex-wrap gap-2 mb-3 text-xs hidden"></div>
-    <div class="table-wrap">
-        <table class="w-full text-sm">
-            <thead>
-                <tr>
-                    <th class="px-3 py-2 text-left border-b font-medium text-gray-600 whitespace-nowrap">DATE</th>
-                    <th class="px-3 py-2 text-left border-b font-medium text-gray-600 whitespace-nowrap">CN</th>
-                    <th class="px-3 py-2 text-left border-b font-medium text-gray-600 whitespace-nowrap">CODE</th>
-                    <th class="px-3 py-2 text-left border-b font-medium text-gray-600 whitespace-nowrap">TROUBLE DESCRIPTION</th>
-                    <th class="px-3 py-2 text-center border-b font-medium text-gray-600 whitespace-nowrap">HM_START</th>
-                    <th class="px-3 py-2 text-center border-b font-medium text-gray-600 whitespace-nowrap">LOCATION</th>
-                    <th class="px-3 py-2 text-left border-b font-medium text-gray-600 whitespace-nowrap">ACTION_TAKEN</th>
-                    <th class="px-3 py-2 text-center border-b font-medium text-gray-600 whitespace-nowrap">GL</th>
-                </tr>
-            </thead>
-            <tbody id="dbrBody">
-                <tr><td colspan="8" class="text-center text-gray-400 py-12">Terapkan filter untuk melihat data</td></tr>
-            </tbody>
-        </table>
+
+    <!-- DATA TABLE -->
+    <div class="card overflow-hidden">
+        <div class="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+            <h2 class="text-sm font-semibold text-gray-800">📋 Breakdown Data</h2>
+            <div class="flex items-center gap-2">
+                <span class="text-xs text-gray-400" id="pageInfo">Halaman 1</span>
+                <div class="flex gap-1">
+                    <button onclick="prevPage()" class="btn-sm bg-gray-50 hover:bg-gray-100 text-gray-600 px-2 py-1 text-xs border border-gray-200 rounded-md disabled:opacity-30" id="prevBtn">←</button>
+                    <button onclick="nextPage()" class="btn-sm bg-gray-50 hover:bg-gray-100 text-gray-600 px-2 py-1 text-xs border border-gray-200 rounded-md" id="nextBtn">→</button>
+                </div>
+            </div>
+        </div>
+        <div class="table-wrap">
+            <table class="w-full text-sm" id="dbrTable">
+                <thead>
+                    <tr>
+                        <th class="px-3 py-2.5 text-left border-b font-semibold text-gray-500 text-[11px] uppercase tracking-wider whitespace-nowrap bg-gray-50/50">#</th>
+                        <th class="px-3 py-2.5 text-left border-b font-semibold text-gray-500 text-[11px] uppercase tracking-wider whitespace-nowrap bg-gray-50/50">Date</th>
+                        <th class="px-3 py-2.5 text-left border-b font-semibold text-gray-500 text-[11px] uppercase tracking-wider whitespace-nowrap bg-gray-50/50">CN</th>
+                        <th class="px-3 py-2.5 text-left border-b font-semibold text-gray-500 text-[11px] uppercase tracking-wider whitespace-nowrap bg-gray-50/50">Crew</th>
+                        <th class="px-3 py-2.5 text-left border-b font-semibold text-gray-500 text-[11px] uppercase tracking-wider whitespace-nowrap bg-gray-50/50">Code</th>
+                        <th class="px-3 py-2.5 text-left border-b font-semibold text-gray-500 text-[11px] uppercase tracking-wider whitespace-nowrap bg-gray-50/50">Trouble Desc</th>
+                        <th class="px-3 py-2.5 text-center border-b font-semibold text-gray-500 text-[11px] uppercase tracking-wider whitespace-nowrap bg-gray-50/50">HM</th>
+                        <th class="px-3 py-2.5 text-left border-b font-semibold text-gray-500 text-[11px] uppercase tracking-wider whitespace-nowrap bg-gray-50/50">Loc</th>
+                        <th class="px-3 py-2.5 text-center border-b font-semibold text-gray-500 text-[11px] uppercase tracking-wider whitespace-nowrap bg-gray-50/50">Start BD</th>
+                        <th class="px-3 py-2.5 text-center border-b font-semibold text-gray-500 text-[11px] uppercase tracking-wider whitespace-nowrap bg-gray-50/50">BD Hour</th>
+                        <th class="px-3 py-2.5 text-center border-b font-semibold text-gray-500 text-[11px] uppercase tracking-wider whitespace-nowrap bg-gray-50/50">RFU</th>
+                        <th class="px-3 py-2.5 text-center border-b font-semibold text-gray-500 text-[11px] uppercase tracking-wider whitespace-nowrap bg-gray-50/50">MO</th>
+                        <th class="px-3 py-2.5 text-left border-b font-semibold text-gray-500 text-[11px] uppercase tracking-wider whitespace-nowrap bg-gray-50/50">Action Taken</th>
+                    </tr>
+                </thead>
+                <tbody id="dbrBody">
+                    <tr><td colspan="13" class="text-center text-gray-400 py-12">Terapkan filter untuk melihat data</td></tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="flex justify-between items-center px-4 py-3 border-t border-gray-100 text-xs text-gray-400">
+            <span id="tableInfo">0 baris</span>
+            <div class="flex items-center gap-2">
+                <span class="text-xs text-gray-400">Page size:</span>
+                <select id="pageSize" onchange="page=0;loadDBR()" class="text-xs border border-gray-200 rounded-md px-2 py-1 bg-white">
+                    <option value="25">25</option>
+                    <option value="50" selected>50</option>
+                    <option value="100">100</option>
+                </select>
+            </div>
+        </div>
     </div>
-    <div class="flex justify-between items-center mt-3 text-xs text-gray-400">
-        <span id="tableInfo">0 baris</span>
-        <button onclick="exportCSV()" class="btn-sm bg-green-100 text-green-700 hover:bg-green-200">⬇ CSV</button>
+</div>
+
+<!-- TAB: CHARTS -->
+<div id="tab-charts" class="tab-content hidden">
+    <!-- ROW 1: Monthly Trend + Top CN -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+        <div class="card p-4">
+            <h2 class="text-sm font-semibold text-gray-800 mb-3">📈 Monthly Trend</h2>
+            <div class="relative" style="height:220px">
+                <canvas id="monthlyCanvas"></canvas>
+            </div>
+        </div>
+        <div class="card p-4">
+            <div class="flex items-center justify-between mb-3">
+                <h2 class="text-sm font-semibold text-gray-800">🏆 Top CN</h2>
+                <span class="text-xs text-gray-400">10 besar</span>
+            </div>
+            <div class="relative" style="height:220px">
+                <canvas id="topCnCanvas"></canvas>
+            </div>
+        </div>
+    </div>
+    <!-- ROW 2: Breakdown Trend + Top Code -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+        <div class="card p-4">
+            <h2 class="text-sm font-semibold text-gray-800 mb-3">📉 Breakdown Trend</h2>
+            <div class="relative" style="height:220px">
+                <canvas id="trendCanvas"></canvas>
+            </div>
+        </div>
+        <div class="card p-4">
+            <h2 class="text-sm font-semibold text-gray-800 mb-3">🔴 Top Breakdown Code</h2>
+            <div class="relative" style="height:220px">
+                <canvas id="codeCanvas"></canvas>
+            </div>
+        </div>
+    </div>
+    <!-- ROW 3: Code Breakdown Tables -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div class="card p-4">
+            <h2 class="text-sm font-semibold text-gray-800 mb-3">📊 Breakdown by Code</h2>
+            <div id="codeTableBody" class="text-xs space-y-1.5"></div>
+        </div>
+        <div class="card p-4">
+            <h2 class="text-sm font-semibold text-gray-800 mb-3">📊 Breakdown by Crew</h2>
+            <div id="crewTableBody" class="text-xs space-y-1.5"></div>
+        </div>
+    </div>
+</div>
+
+<!-- TAB: IMPORT -->
+<div id="tab-import" class="tab-content hidden">
+    <div class="card p-6 max-w-xl mx-auto">
+        <h2 class="text-sm font-semibold text-gray-800 mb-1">📤 Import Data DBR</h2>
+        <p class="text-xs text-gray-400 mb-4">Upload file Excel (.xlsx) — format IMMOCS/DBR atau FUI Dashboard auto-detect</p>
+
+        <div id="dropZone" class="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-blue-400 transition-colors cursor-pointer bg-gray-50/50">
+            <svg class="w-10 h-10 mx-auto text-gray-300 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+            <p class="text-sm text-gray-500">Drop file .xlsx disini atau klik untuk browse</p>
+            <p class="text-xs text-gray-400 mt-1">Mendukung format IMMOCS & FUI Dashboard</p>
+            <input type="file" id="fileInput" accept=".xlsx" class="hidden" onchange="handleFile(this.files[0])">
+        </div>
+
+        <!-- progress -->
+        <div id="importProgress" class="hidden mt-4">
+            <div class="flex items-center gap-2 mb-2">
+                <div class="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                <span class="text-sm text-gray-600" id="importStatus">Processing...</span>
+            </div>
+            <div class="w-full bg-gray-100 rounded-full h-2">
+                <div id="importBar" class="bg-blue-600 h-2 rounded-full transition-all duration-300" style="width:0%"></div>
+            </div>
+        </div>
+
+        <!-- result -->
+        <div id="importResult" class="hidden mt-4 p-4 rounded-xl text-sm"></div>
+
+        <!-- riwayat import -->
+        <div class="mt-6">
+            <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Riwayat Import</h3>
+            <div id="importHistory" class="text-xs space-y-1.5 text-gray-500">
+                <span class="text-gray-400 italic">Memuat...</span>
+            </div>
+        </div>
     </div>
 </div>
 {% endblock %}
@@ -114,25 +233,56 @@
 <script>
 const API = '/dbr-api';
 let page = 0;
-const PAGE_SIZE = 50;
 let lastResult = null;
-let monthlyChart = null;
-let topCnChart = null;
+
+// Chart instances
+let monthlyChart = null, trendChart = null, topCnChart = null, codeChart = null;
 
 document.addEventListener('DOMContentLoaded', () => {
     loadMasterCn();
     loadMasterCodes();
     loadSummary();
-    loadMonthly();
-    loadTopCn();
     loadDBR();
+    loadImportHistory();
+
+    // Update stats periodically
+    setInterval(loadSummary, 60000);
 });
 
+// ============ TAB SWITCHING ============
+function switchTab(name) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+
+    const btn = document.querySelector(`.tab-btn[data-tab="${name}"]`);
+    if (btn) btn.classList.add('active');
+
+    const tab = document.getElementById(`tab-${name}`);
+    if (tab) tab.classList.remove('hidden');
+
+    if (name === 'charts') {
+        loadMonthly();
+        loadTopCn();
+        loadTrend();
+        loadTopCode();
+        loadCodeBreakdown();
+        loadCrewBreakdown();
+    }
+
+    if (name === 'data') {
+        loadDBR();
+    }
+}
+
+// ============ MASTER DATA ============
 async function loadMasterCn() {
     try {
         const r = await fetch(API + '/api/v1/master/cn');
         const data = await r.json();
-        // CN list loaded for internal use only
+        if (data && data.length) {
+            const dl = document.getElementById('cnList');
+            dl.innerHTML = data.map(c => `<option value="${c}">`).join('');
+        }
     } catch(e) {}
 }
 
@@ -151,6 +301,7 @@ async function loadMasterCodes() {
     } catch(e) {}
 }
 
+// ============ SUMMARY STATS ============
 async function loadSummary() {
     try {
         const r = await fetch(API + '/api/v1/dashboard/summary');
@@ -161,17 +312,20 @@ async function loadSummary() {
     } catch(e) {}
 }
 
+// ============ CHARTS ============
 async function loadMonthly() {
     try {
         const r = await fetch(API + '/api/v1/dashboard/monthly-summary');
         const data = await r.json();
-        const months = data.map(d => d.month);
-        const vals = data.map(d => d.total_breakdowns);
+        if (!data || !data.length) return;
         if (monthlyChart) monthlyChart.destroy();
         const ctx = document.getElementById('monthlyCanvas').getContext('2d');
         monthlyChart = new Chart(ctx, {
             type: 'bar',
-            data: { labels: months, datasets: [{ label: 'Breakdowns', data: vals, backgroundColor: '#3b82f6', borderRadius: 4 }] },
+            data: {
+                labels: data.map(d => d.month.slice(0,7)),
+                datasets: [{ label: 'Breakdowns', data: data.map(d => d.total_breakdowns), backgroundColor: '#3b82f6', borderRadius: 4 }]
+            },
             options: {
                 responsive: true, maintainAspectRatio: false,
                 plugins: { legend: { display: false } },
@@ -188,19 +342,15 @@ async function loadTopCn() {
     try {
         const r = await fetch(API + '/api/v1/dashboard/top-cn?limit=10');
         const data = await r.json();
-        const labels = data.map(d => d.cn);
-        const vals = data.map(d => d.total_breakdowns);
+        if (!data || !data.length) return;
         if (topCnChart) topCnChart.destroy();
         const ctx = document.getElementById('topCnCanvas').getContext('2d');
+        const colors = ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899','#14b8a6','#f97316','#06b6d4','#84cc16'];
         topCnChart = new Chart(ctx, {
             type: 'bar',
             data: {
-                labels: labels,
-                datasets: [{
-                    label: 'Breakdowns', data: vals,
-                    backgroundColor: ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899','#14b8a6','#f97316','#06b6d4','#84cc16'],
-                    borderRadius: 4
-                }]
+                labels: data.map(d => d.cn),
+                datasets: [{ label: 'Breakdowns', data: data.map(d => d.total_breakdowns), backgroundColor: colors, borderRadius: 4 }]
             },
             options: {
                 indexAxis: 'y', responsive: true, maintainAspectRatio: false,
@@ -214,6 +364,109 @@ async function loadTopCn() {
     } catch(e) {}
 }
 
+async function loadTrend() {
+    try {
+        const r = await fetch(API + '/api/v1/dashboard/breakdown-trend');
+        const data = await r.json();
+        if (!data || !data.length) return;
+        if (trendChart) trendChart.destroy();
+        const ctx = document.getElementById('trendCanvas').getContext('2d');
+        trendChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: data.map(d => d.date),
+                datasets: [{
+                    label: 'Breakdowns', data: data.map(d => d.total_breakdowns),
+                    borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.08)',
+                    fill: true, tension: 0.3, pointRadius: 2, pointHoverRadius: 5
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { ticks: { font: { size: 8 }, maxTicksLimit: 20, maxRotation: 45 }, grid: { display: false } },
+                    y: { beginAtZero: true, ticks: { font: { size: 9 } }, grid: { color: '#f1f5f9' } }
+                }
+            }
+        });
+    } catch(e) {}
+}
+
+async function loadTopCode() {
+    try {
+        const r = await fetch(API + '/api/v1/dashboard/top-breakdown-code?limit=10');
+        const data = await r.json();
+        if (!data || !data.length) return;
+        if (codeChart) codeChart.destroy();
+        const ctx = document.getElementById('codeCanvas').getContext('2d');
+        codeChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: data.map(d => d.breakdown_code),
+                datasets: [{
+                    data: data.map(d => d.total),
+                    backgroundColor: ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899','#14b8a6','#f97316','#06b6d4','#84cc16']
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'right', labels: { font: { size: 10 }, boxWidth: 12, padding: 8 } }
+                }
+            }
+        });
+    } catch(e) {}
+}
+
+async function loadCodeBreakdown() {
+    try {
+        const r = await fetch(API + '/api/v1/dashboard/top-breakdown-code?limit=100');
+        const data = await r.json();
+        if (!data || !data.length) { document.getElementById('codeTableBody').innerHTML = '<div class="text-gray-400 italic">No data</div>'; return; }
+        const max = data[0].total;
+        document.getElementById('codeTableBody').innerHTML = data.slice(0,10).map(d => {
+            const pct = Math.round((d.total / max) * 100);
+            const dotColors = {SCM:'bg-green-400', USM:'bg-orange-400', TSM:'bg-blue-400', TUM:'bg-yellow-400', ICM:'bg-red-400'};
+            const dot = dotColors[d.breakdown_code] || 'bg-gray-400';
+            return '<div class="flex items-center gap-2">' +
+                '<span class="w-2 h-2 rounded-full shrink-0 ' + dot + '"></span>' +
+                '<span class="font-medium w-8">' + d.breakdown_code + '</span>' +
+                '<div class="flex-1 bg-gray-100 rounded-full h-2"><div class="progress-fill bg-blue-500" style="width:' + pct + '%"></div></div>' +
+                '<span class="text-gray-500 w-16 text-right">' + d.total.toLocaleString() + '</span>' +
+                '</div>';
+        }).join('');
+    } catch(e) {}
+}
+
+async function loadCrewBreakdown() {
+    try {
+        // Agregasi per crew dari data yang ada — hitung manual via API yang ada
+        const r = await fetch(API + '/api/v1/breakdowns?size=10000');
+        const data = await r.json();
+        if (!data.items) { document.getElementById('crewTableBody').innerHTML = '<div class="text-gray-400 italic">No data</div>'; return; }
+        const crewMap = {};
+        data.items.forEach(item => {
+            const c = item.crew_type || 'Lainnya';
+            crewMap[c] = (crewMap[c] || 0) + 1;
+        });
+        const sorted = Object.entries(crewMap).sort((a,b) => b[1] - a[1]);
+        const maxVal = sorted[0][1];
+        const crewColors = {SSE:'bg-blue-400', HAULER:'bg-green-400', TYRE:'bg-yellow-400', WHEEL:'bg-purple-400'};
+        document.getElementById('crewTableBody').innerHTML = sorted.map(([crew, total]) => {
+            const pct = Math.round((total / maxVal) * 100);
+            const bar = crewColors[crew] || 'bg-gray-400';
+            return '<div class="flex items-center gap-2">' +
+                '<span class="w-2 h-2 rounded-full shrink-0 ' + bar + '"></span>' +
+                '<span class="font-medium w-16">' + crew + '</span>' +
+                '<div class="flex-1 bg-gray-100 rounded-full h-2"><div class="progress-fill ' + bar + '" style="width:' + pct + '%"></div></div>' +
+                '<span class="text-gray-500 w-16 text-right">' + total.toLocaleString() + '</span>' +
+                '</div>';
+        }).join('');
+    } catch(e) {}
+}
+
+// ============ FILTERS ============
 function buildParams() {
     const params = {};
     const cn = document.getElementById('fCn').value;
@@ -233,23 +486,31 @@ function buildFilters() {
     const fFrom = document.getElementById('fDateFrom').value;
     const fTo = document.getElementById('fDateTo').value;
     const chips = [];
-    if (cn) chips.push({label:'CN: ' + cn, cb:function(){document.getElementById('fCn').value='';loadDBR();}});
-    if (code) chips.push({label:'Code: ' + code, cb:function(){document.getElementById('fCode').value='';loadDBR();}});
-    if (fFrom) chips.push({label:'Dari: ' + fFrom, cb:function(){document.getElementById('fDateFrom').value='';loadDBR();}});
-    if (fTo) chips.push({label:'Sampai: ' + fTo, cb:function(){document.getElementById('fDateTo').value='';loadDBR();}});
+    if (cn) chips.push({label:'CN: ' + cn, clear:function(){document.getElementById('fCn').value='';}});
+    if (code) chips.push({label:'Code: ' + code, clear:function(){document.getElementById('fCode').value='';}});
+    if (fFrom) chips.push({label:'Dari: ' + fFrom, clear:function(){document.getElementById('fDateFrom').value='';}});
+    if (fTo) chips.push({label:'Sampai: ' + fTo, clear:function(){document.getElementById('fDateTo').value='';}});
     const el = document.getElementById('filterChips');
-    if (!chips.length) { el.classList.add('hidden'); el.innerHTML = ''; return; }
+    const fc = document.getElementById('filterCount');
+    if (!chips.length) { el.classList.add('hidden'); el.innerHTML = ''; if(fc) fc.textContent = ''; return; }
     el.classList.remove('hidden');
-    el.innerHTML = chips.map(c => '<span class="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">' + c.label + '<button onclick="(' + c.cb.toString() + ')()" class="ml-1 hover:text-red-500">&times;</button></span>').join('');
+    if (fc) fc.textContent = '(' + chips.length + ' filter)';
+    el.innerHTML = chips.map(c => '<span class="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">' + c.label + '<button onclick="removeChip(' + chips.indexOf(c) + ')" class="ml-0.5 hover:text-red-500 font-bold">&times;</button></span>').join('');
+    window._chips = chips;
+}
+
+function removeChip(idx) {
+    const chip = window._chips[idx];
+    if (chip && chip.clear) chip.clear();
+    loadDBR();
 }
 
 async function loadDBR() {
     page = 0;
-    buildFilters();
     const params = buildParams();
-    const qs = new URLSearchParams(params).toString();
+    buildFilters();
     try {
-        const cr = await fetch(API + '/api/v1/breakdowns?size=1&' + qs);
+        const cr = await fetch(API + '/api/v1/breakdowns?size=1&' + new URLSearchParams(params).toString());
         const cd = await cr.json();
         document.getElementById('statFiltered').textContent = (cd.total || 0).toLocaleString();
     } catch(e) {}
@@ -257,40 +518,76 @@ async function loadDBR() {
 }
 
 async function fetchPage(params) {
-    const p = Object.assign({}, params, { page: page + 1, size: PAGE_SIZE });
+    const size = parseInt(document.getElementById('pageSize').value) || 50;
+    const p = Object.assign({}, params, { page: page + 1, size: size });
     const qs = new URLSearchParams(p).toString();
     try {
         const r = await fetch(API + '/api/v1/breakdowns?' + qs);
         const d = await r.json();
         lastResult = d;
         renderTable(d.items || []);
-        document.getElementById('pageInfo').textContent = 'Halaman ' + (page+1);
-        document.getElementById('tableInfo').textContent = (d.items ? d.items.length : 0) + ' dari ' + ((d.total || 0)).toLocaleString() + ' baris';
+
+        document.getElementById('pageInfo').textContent = 'Page ' + (page + 1) + '/' + (d.pages || 1);
+        document.getElementById('tableInfo').textContent = (d.items ? d.items.length : 0) + ' of ' + ((d.total || 0)).toLocaleString() + ' rows';
+        document.getElementById('prevBtn').disabled = (page === 0);
     } catch(e) {
-        document.getElementById('dbrBody').innerHTML = '<tr><td colspan="8" class="text-center text-red-500 py-8">Error: ' + e.message + '</td></tr>';
+        document.getElementById('dbrBody').innerHTML = '<tr><td colspan="13" class="text-center text-red-500 py-8">Error: ' + e.message + '</td></tr>';
     }
 }
 
 function renderTable(items) {
     const tbody = document.getElementById('dbrBody');
     if (!items || !items.length) {
-        tbody.innerHTML = '<tr><td colspan="8" class="text-center text-gray-400 py-12">Tidak ada data</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="13" class="text-center text-gray-400 py-12">Tidak ada data</td></tr>';
         return;
     }
-    tbody.innerHTML = items.map(function(r) {
+    tbody.innerHTML = items.map(function(r, i) {
         var code = r.breakdown_code || '';
-        var codeColor = code === 'SCM' ? 'bg-green-100 text-green-700' : (code === 'USM' ? 'bg-orange-100 text-orange-700' : (code === 'TUM' ? 'bg-yellow-100 text-yellow-700' : (code === 'TSM' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600')));
-        return '<tr class="hover:bg-blue-50 border-b">' +
-            '<td class="px-3 py-2 whitespace-nowrap"><div class="text-xs font-semibold">' + (r.report_date || '-') + '</div></td>' +
-            '<td class="px-3 py-2 whitespace-nowrap"><div class="font-medium text-xs">' + (r.cn || '-') + '</div></td>' +
-            '<td class="px-3 py-2"><span class="px-1.5 py-0.5 rounded text-xs font-medium ' + codeColor + '">' + code + '</span></td>' +
-            '<td class="px-3 py-2 max-w-[280px]"><div class="text-xs truncate" title="' + (r.trouble_description || '') + '">' + (r.trouble_description || '-') + '</div></td>' +
-            '<td class="px-3 py-2 text-center whitespace-nowrap"><div class="text-xs">' + (r.hm_start || '-') + '</div></td>' +
-            '<td class="px-3 py-2 text-center whitespace-nowrap"><div class="text-xs">' + (r.location || '-') + '</div></td>' +
-            '<td class="px-3 py-2 max-w-[200px]"><div class="text-xs truncate" title="' + (r.action_taken || '') + '">' + (r.action_taken || '-') + '</div></td>' +
-            '<td class="px-3 py-2 text-center whitespace-nowrap"><div class="text-xs">' + (r.gl || '-') + '</div></td>' +
-            '</tr>';
+        var codeColors = {SCM:'bg-green-100 text-green-700', USM:'bg-orange-100 text-orange-700', TSM:'bg-blue-100 text-blue-700', TUM:'bg-yellow-100 text-yellow-700', ICM:'bg-red-100 text-red-700'};
+        var codeColor = codeColors[code] || 'bg-gray-100 text-gray-500';
+        var rfu = r.rfu_bour || '';
+        if (rfu === '####' || rfu === '#') rfu = '<span class="text-gray-300">—</span>';
+        var bdHour = r.start_bd_hour || '';
+        var startBd = r.start_breakdown || '';
+        if (startBd && startBd.length > 16) startBd = startBd.slice(0,16) + '…';
+        var mo = r.mo_number || '';
+        if (mo && mo.length > 8) mo = mo.slice(0,8) + '…';
+        return '<tr class="hover:bg-blue-50/50 border-b border-gray-50 transition-colors cursor-pointer" onclick="toggleDetail(this)">' +
+            '<td class="px-3 py-2.5 text-xs text-gray-400 font-mono">' + ((page * (parseInt(document.getElementById(\'pageSize\').value)||50)) + i + 1) + '</td>' +
+            '<td class="px-3 py-2.5 whitespace-nowrap"><div class="text-xs font-semibold text-gray-800">' + (r.report_date || '-') + '</div></td>' +
+            '<td class="px-3 py-2.5 whitespace-nowrap"><div class="font-medium text-xs text-gray-900">' + (r.cn || '-') + '</div></td>' +
+            '<td class="px-3 py-2.5 whitespace-nowrap"><div class="text-xs">' + (r.crew_type || r.section || '-') + '</div></td>' +
+            '<td class="px-3 py-2.5"><span class="px-1.5 py-0.5 rounded text-xs font-semibold ' + codeColor + '">' + (code || '—') + '</span></td>' +
+            '<td class="px-3 py-2.5 max-w-[200px]"><div class="text-xs truncate" title="' + (r.trouble_description || '') + '">' + (r.trouble_description || '-') + '</div></td>' +
+            '<td class="px-3 py-2.5 text-center whitespace-nowrap"><span class="text-xs font-mono">' + (r.hm_start || '-') + '</span></td>' +
+            '<td class="px-3 py-2.5 whitespace-nowrap"><div class="text-xs">' + (r.location || '-') + '</div></td>' +
+            '<td class="px-3 py-2.5 text-center whitespace-nowrap"><span class="text-xs font-mono">' + startBd + '</span></td>' +
+            '<td class="px-3 py-2.5 text-center whitespace-nowrap"><span class="text-xs font-mono">' + bdHour + '</span></td>' +
+            '<td class="px-3 py-2.5 text-center whitespace-nowrap"><span class="text-xs font-mono">' + rfu + '</span></td>' +
+            '<td class="px-3 py-2.5 text-center whitespace-nowrap"><span class="text-xs font-mono">' + mo + '</span></td>' +
+            '<td class="px-3 py-2.5 max-w-[180px]"><div class="text-xs truncate" title="' + (r.action_taken || '') + '">' + (r.action_taken || '-') + '</div></td>' +
+            '</tr>' +
+            '<tr class="detail-row hidden bg-gray-50/50">' +
+            '<td colspan="13" class="px-4 py-3">' +
+            '<div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">' +
+            '<div><span class="font-medium text-gray-500">GL:</span> ' + (r.gl || '-') + '</div>' +
+            '<div><span class="font-medium text-gray-500">Mechanic:</span> ' + (r.mechanic || '-') + '</div>' +
+            '<div><span class="font-medium text-gray-500">WO:</span> ' + (r.wo_number || '-') + '</div>' +
+            '<div><span class="font-medium text-gray-500">Notif:</span> ' + (r.notification_number || '-') + '</div>' +
+            '<div><span class="font-medium text-gray-500">Start Time:</span> ' + (r.start_time || '-') + '</div>' +
+            '<div><span class="font-medium text-gray-500">Finish Time:</span> ' + (r.finish_time || '-') + '</div>' +
+            '<div><span class="font-medium text-gray-500">Total:</span> ' + (r.total || '-') + '</div>' +
+            '<div><span class="font-medium text-gray-500">Section:</span> ' + (r.section || '-') + '</div>' +
+            '</div>' +
+            '</td></tr>';
     }).join('');
+}
+
+function toggleDetail(tr) {
+    var detail = tr.nextElementSibling;
+    if (detail && detail.classList.contains('detail-row')) {
+        detail.classList.toggle('hidden');
+    }
 }
 
 function prevPage() { if (page > 0) { page--; fetchPage(buildParams()); } }
@@ -302,9 +599,10 @@ function resetFilter() {
     loadDBR();
 }
 
+// ============ CSV EXPORT ============
 function exportCSV() {
     if (!lastResult || !lastResult.items || !lastResult.items.length) return alert('Tidak ada data');
-    var keys = ['report_date','cn','breakdown_code','trouble_description','hm_start','location','action_taken','gl'];
+    const keys = ['report_date','cn','crew_type','breakdown_code','trouble_description','hm_start','location','start_breakdown','start_bd_hour','rfu_bour','mo_number','action_taken','mechanic','gl','wo_number','notification_number'];
     var csv = keys.join(',') + '\n' + lastResult.items.map(function(r) {
         return keys.map(function(k) {
             var s = String(r[k] || '').replace(/"/g,'""');
@@ -315,6 +613,101 @@ function exportCSV() {
     var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'dbr_export.csv'; a.click();
 }
 
+// ============ IMPORT ============
+const dropZone = document.getElementById('dropZone');
+const fileInput = document.getElementById('fileInput');
+
+dropZone.addEventListener('click', function() { fileInput.click(); });
+dropZone.addEventListener('dragover', function(e) { e.preventDefault(); dropZone.classList.add('border-blue-500','bg-blue-50/30'); });
+dropZone.addEventListener('dragleave', function() { dropZone.classList.remove('border-blue-500','bg-blue-50/30'); });
+dropZone.addEventListener('drop', function(e) {
+    e.preventDefault();
+    dropZone.classList.remove('border-blue-500','bg-blue-50/30');
+    const file = e.dataTransfer.files[0];
+    if (file) handleFile(file);
+});
+
+function handleFile(file) {
+    if (!file || !file.name.endsWith('.xlsx')) {
+        showImportResult('error', 'Hanya file .xlsx yang diterima');
+        return;
+    }
+
+    document.getElementById('importProgress').classList.remove('hidden');
+    document.getElementById('importResult').classList.add('hidden');
+    document.getElementById('importStatus').textContent = 'Mengupload ' + file.name + '...';
+    document.getElementById('importBar').style.width = '20%';
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    document.getElementById('importBar').style.width = '40%';
+
+    fetch(API + '/api/v1/import/excel', {
+        method: 'POST',
+        body: formData
+    })
+    .then(function(resp) { document.getElementById('importBar').style.width = '90%'; return resp.json(); })
+    .then(function(result) {
+        document.getElementById('importBar').style.width = '100%';
+
+        if (result.status === 'success') {
+            showImportResult('success',
+                '<strong class="text-sm">✅ Import Berhasil</strong><br>' +
+                result.filename + '<br>' +
+                '<span class="font-semibold">' + result.total_rows + '</span> baris di-' +
+                (result.inserted ? 'insert (' + result.inserted + ')' : '') +
+                (result.updated ? ', update (' + result.updated + ')' : '') +
+                (result.skipped ? ', skip (' + result.skipped + ')' : '')
+            );
+        } else if (result.status === 'duplicate_file') {
+            showImportResult('warning',
+                '<strong>⚠️ File Duplikat</strong><br>' +
+                result.filename + ' — sudah diimport sebelumnya (' + result.total_rows + ' baris)'
+            );
+        } else if (result.status === 'empty_file') {
+            showImportResult('error',
+                '<strong>⚠️ File Kosong / Format Tidak Cocok</strong><br>' +
+                'Tidak ada data yang bisa dipars. Pastikan format file sesuai IMMOCS/DBR atau FUI Dashboard.'
+            );
+        } else {
+            showImportResult('error', 'Gagal: ' + JSON.stringify(result));
+        }
+
+        // Refresh
+        loadSummary();
+        loadMasterCn();
+        loadMasterCodes();
+        loadImportHistory();
+
+        setTimeout(function() { document.getElementById('importProgress').classList.add('hidden'); }, 2000);
+    })
+    .catch(function(err) {
+        showImportResult('error', 'Error: ' + err.message);
+        document.getElementById('importProgress').classList.add('hidden');
+    });
+}
+
+function showImportResult(type, html) {
+    var el = document.getElementById('importResult');
+    el.classList.remove('hidden');
+    var colors = {success:'bg-green-50 text-green-800 border border-green-200', warning:'bg-yellow-50 text-yellow-800 border border-yellow-200', error:'bg-red-50 text-red-800 border border-red-200'};
+    el.className = 'mt-4 p-4 rounded-xl text-sm ' + (colors[type] || colors.error);
+    el.innerHTML = html;
+}
+
+async function loadImportHistory() {
+    try {
+        // Fetch some recent import logs — just use filtered data
+        const r = await fetch(API + '/api/v1/breakdowns?size=5&sort=-created_at');
+        const el = document.getElementById('importHistory');
+        el.innerHTML = '<span class="text-gray-500 italic">Riwayat impor dicek via data terbaru</span>';
+    } catch(e) {
+        document.getElementById('importHistory').innerHTML = '<span class="text-gray-400 italic">Gagal muat riwayat</span>';
+    }
+}
+
+// ============ KEYBOARD ============
 document.querySelectorAll('#fCn,#fCode,#fDateFrom,#fDateTo').forEach(function(el) {
     el.addEventListener('keydown', function(e) { if (e.key === 'Enter') loadDBR(); });
 });
