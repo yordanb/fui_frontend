@@ -69,8 +69,7 @@
         <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div>
                 <label class="text-xs font-medium text-gray-500 mb-1 block">CN</label>
-                <input id="fCn" class="input-field" placeholder="Ketik CN..." autocomplete="off" list="cnList">
-                <datalist id="cnList"></datalist>
+                <input id="fCn" class="input-field" placeholder="Ketik CN..." autocomplete="off">
             </div>
             <div>
                 <label class="text-xs font-medium text-gray-500 mb-1 block">Breakdown Code</label>
@@ -148,6 +147,15 @@
 
 <!-- TAB: CHARTS -->
 <div id="tab-charts" class="tab-content hidden">
+    <!-- Date Range Filter -->
+    <div class="flex flex-wrap items-center gap-3 mb-4 p-3 bg-gray-50 rounded-xl border border-gray-200">
+        <label class="text-xs font-medium text-gray-600">Rentang Tanggal:</label>
+        <input type="date" id="chartStart" class="text-xs border border-gray-300 rounded-lg px-3 py-2 bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+        <span class="text-gray-400">s/d</span>
+        <input type="date" id="chartEnd" class="text-xs border border-gray-300 rounded-lg px-3 py-2 bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+        <button onclick="applyChartFilter()" class="text-xs bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-medium">Terapkan</button>
+        <button onclick="resetChartFilter()" class="text-xs bg-gray-100 text-gray-600 px-3 py-2 rounded-lg hover:bg-gray-200">Reset</button>
+    </div>
     <!-- ROW 1: Monthly Trend + Top CN -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
         <div class="card p-4">
@@ -230,30 +238,35 @@
         </div>
     </div>
 </div>
-{% endblock %}
 
-<!-- Truncate Confirmation Modal -->
-<div id="truncateModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 hidden" onclick="if(event.target===this)hideTruncateModal()">
-    <div class="bg-white rounded-2xl p-6 max-w-sm w-full mx-4 shadow-2xl" onclick="event.stopPropagation()">
-        <div class="flex items-center gap-3 mb-4">
-            <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center text-red-600">
-                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-.833-2.694-.833-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z"/></svg>
+</div><!-- end wrapper -->
+
+    <!-- Truncate Confirmation Modal (inside content block for Jinja2 rendering) -->
+    <div id="truncateModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 hidden" onclick="if(event.target===this)hideTruncateModal()">
+        <div class="bg-white rounded-2xl p-6 max-w-sm w-full mx-4 shadow-2xl" onclick="event.stopPropagation()">
+            <div class="flex items-center gap-3 mb-4">
+                <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center text-red-600">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-.833-2.694-.833-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z"/></svg>
+                </div>
+                <div>
+                    <h3 class="text-sm font-bold text-gray-900">⚠️ Hapus Semua Data DBR</h3>
+                    <p class="text-xs text-gray-500 mt-0.5">Tindakan ini tidak bisa dibatalkan</p>
+                </div>
             </div>
-            <div>
-                <h3 class="text-sm font-bold text-gray-900">⚠️ Hapus Semua Data DBR</h3>
-                <p class="text-xs text-gray-500 mt-0.5">Tindakan ini tidak bisa dibatalkan</p>
+            <p class="text-sm text-gray-600 mb-3">Semua <strong id="truncateCount">0</strong> data breakdown akan dihapus permanen.</p>
+            <p class="text-xs text-gray-500 mb-3">Ketik <strong class="text-red-600">DELETE</strong> untuk konfirmasi:</p>
+            <input type="text" id="truncateInput" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-red-500" placeholder="Ketik DELETE di sini" autocomplete="off">
+            <div class="flex gap-2 justify-end">
+                <button onclick="hideTruncateModal()" class="btn-sm bg-gray-100 text-gray-600 hover:bg-gray-200">Batal</button>
+                <button onclick="confirmTruncate()" id="truncateConfirmBtn" disabled class="btn-sm bg-red-600 text-white hover:bg-red-700 font-semibold flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <svg class="w-4 h-4 animate-spin hidden" id="truncateSpinner" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                    Hapus Semua
+                </button>
             </div>
-        </div>
-        <p class="text-sm text-gray-600 mb-4">Semua <strong id="truncateCount">0</strong> data breakdown akan dihapus permanen. Lanjutkan?</p>
-        <div class="flex gap-2 justify-end">
-            <button onclick="hideTruncateModal()" class="btn-sm bg-gray-100 text-gray-600 hover:bg-gray-200">Batal</button>
-            <button onclick="confirmTruncate()" id="truncateConfirmBtn" class="btn-sm bg-red-600 text-white hover:bg-red-700 font-semibold flex items-center gap-1">
-                <svg class="w-4 h-4 animate-spin hidden" id="truncateSpinner" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
-                Hapus Semua
-            </button>
         </div>
     </div>
-</div>
+
+{% endblock %}
 
 {% block extra_js %}
 <script src="/static/js/chart.min.js" defer></script>
@@ -267,7 +280,6 @@ let lastResult = null;
 let monthlyChart = null, trendChart = null, topCnChart = null, codeChart = null;
 
 document.addEventListener('DOMContentLoaded', () => {
-    loadMasterCn();
     loadMasterCodes();
     loadSummary();
     loadDBR();
@@ -303,17 +315,6 @@ function switchTab(name) {
 }
 
 // ============ MASTER DATA ============
-async function loadMasterCn() {
-    try {
-        const r = await fetch(API + '/api/v1/master/cn');
-        const data = await r.json();
-        if (data && data.length) {
-            const dl = document.getElementById('cnList');
-            dl.innerHTML = data.map(c => `<option value="${c}">`).join('');
-        }
-    } catch(e) {}
-}
-
 async function loadMasterCodes() {
     try {
         const r = await fetch(API + '/api/v1/dashboard/top-breakdown-code?limit=100');
@@ -341,9 +342,32 @@ async function loadSummary() {
 }
 
 // ============ CHARTS ============
+function getChartFilter() {
+    const s = document.getElementById('chartStart').value;
+    const e = document.getElementById('chartEnd').value;
+    const p = new URLSearchParams();
+    if (s) p.set('start_date', s);
+    if (e) p.set('end_date', e);
+    return p.toString();
+}
+
+function applyChartFilter() {
+    const tab = document.getElementById('tab-charts');
+    if (tab && !tab.classList.contains('hidden')) {
+        loadMonthly(); loadTopCn(); loadTrend(); loadTopCode(); loadCodeBreakdown(); loadCrewBreakdown();
+    }
+}
+
+function resetChartFilter() {
+    document.getElementById('chartStart').value = '';
+    document.getElementById('chartEnd').value = '';
+    applyChartFilter();
+}
+
 async function loadMonthly() {
     try {
-        const r = await fetch(API + '/api/v1/dashboard/monthly-summary');
+        const filt = getChartFilter();
+        const r = await fetch(API + '/api/v1/dashboard/monthly-summary' + (filt ? '?' + filt : ''));
         const data = await r.json();
         if (!data || !data.length) return;
         if (monthlyChart) monthlyChart.destroy();
@@ -368,7 +392,8 @@ async function loadMonthly() {
 
 async function loadTopCn() {
     try {
-        const r = await fetch(API + '/api/v1/dashboard/top-cn?limit=10');
+        const filt = getChartFilter();
+        const r = await fetch(API + '/api/v1/dashboard/top-cn?limit=10' + (filt ? '&' + filt : ''));
         const data = await r.json();
         if (!data || !data.length) return;
         if (topCnChart) topCnChart.destroy();
@@ -394,7 +419,8 @@ async function loadTopCn() {
 
 async function loadTrend() {
     try {
-        const r = await fetch(API + '/api/v1/dashboard/breakdown-trend');
+        const filt = getChartFilter();
+        const r = await fetch(API + '/api/v1/dashboard/breakdown-trend' + (filt ? '?' + filt : ''));
         const data = await r.json();
         if (!data || !data.length) return;
         if (trendChart) trendChart.destroy();
@@ -423,7 +449,8 @@ async function loadTrend() {
 
 async function loadTopCode() {
     try {
-        const r = await fetch(API + '/api/v1/dashboard/top-breakdown-code?limit=10');
+        const filt = getChartFilter();
+        const r = await fetch(API + '/api/v1/dashboard/top-breakdown-code?limit=10' + (filt ? '&' + filt : ''));
         const data = await r.json();
         if (!data || !data.length) return;
         if (codeChart) codeChart.destroy();
@@ -449,7 +476,8 @@ async function loadTopCode() {
 
 async function loadCodeBreakdown() {
     try {
-        const r = await fetch(API + '/api/v1/dashboard/top-breakdown-code?limit=100');
+        const filt = getChartFilter();
+        const r = await fetch(API + '/api/v1/dashboard/top-breakdown-code?limit=100' + (filt ? '&' + filt : ''));
         const data = await r.json();
         if (!data || !data.length) { document.getElementById('codeTableBody').innerHTML = '<div class="text-gray-400 italic">No data</div>'; return; }
         const max = data[0].total;
@@ -469,16 +497,23 @@ async function loadCodeBreakdown() {
 
 async function loadCrewBreakdown() {
     try {
-        // Agregasi per crew dari data yang ada — hitung manual via API yang ada
-        const r = await fetch(API + '/api/v1/breakdowns?size=10000');
-        const data = await r.json();
-        if (!data.items) { document.getElementById('crewTableBody').innerHTML = '<div class="text-gray-400 italic">No data</div>'; return; }
+        const filt = getChartFilter();
         const crewMap = {};
-        data.items.forEach(item => {
-            const c = item.crew_type || 'Lainnya';
-            crewMap[c] = (crewMap[c] || 0) + 1;
-        });
+        let page = 1;
+        let totalPages = 1;
+        while (page <= totalPages) {
+            const r = await fetch(API + '/api/v1/breakdowns?size=1000&page=' + page + (filt ? '&' + filt : ''));
+            const data = await r.json();
+            if (!data.items) break;
+            totalPages = data.pages || 1;
+            data.items.forEach(item => {
+                const c = item.crew_type || 'Lainnya';
+                crewMap[c] = (crewMap[c] || 0) + 1;
+            });
+            page++;
+        }
         const sorted = Object.entries(crewMap).sort((a,b) => b[1] - a[1]);
+        if (!sorted.length) { document.getElementById('crewTableBody').innerHTML = '<div class="text-gray-400 italic">No data</div>'; return; }
         const maxVal = sorted[0][1];
         const crewColors = {SSE:'bg-blue-400', HAULER:'bg-green-400', TYRE:'bg-yellow-400', WHEEL:'bg-purple-400'};
         document.getElementById('crewTableBody').innerHTML = sorted.map(([crew, total]) => {
@@ -704,7 +739,6 @@ function handleFile(file) {
 
         // Refresh
         loadSummary();
-        loadMasterCn();
         loadMasterCodes();
         loadImportHistory();
 
@@ -737,19 +771,40 @@ async function loadImportHistory() {
 
 // ============ ADMIN: TRUNCATE ============
 function showTruncateModal() {
-    // Show current count
-    var total = document.getElementById('statTotal').textContent;
+    var statEl = document.getElementById('statTotal');
+    if (!statEl) return alert('Data belum dimuat, coba refresh');
+    var total = statEl.textContent;
     document.getElementById('truncateCount').textContent = total;
+    document.getElementById('truncateInput').value = '';
+    document.getElementById('truncateConfirmBtn').disabled = true;
     document.getElementById('truncateModal').classList.remove('hidden');
+    setTimeout(function() { document.getElementById('truncateInput').focus(); }, 100);
 }
 
 function hideTruncateModal() {
     document.getElementById('truncateModal').classList.add('hidden');
 }
 
+// Enable confirm only when input == DELETE
+document.addEventListener('DOMContentLoaded', function() {
+    var inp = document.getElementById('truncateInput');
+    if (inp) {
+        inp.addEventListener('input', function() {
+            document.getElementById('truncateConfirmBtn').disabled = this.value !== 'DELETE';
+        });
+        inp.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && this.value === 'DELETE') {
+                confirmTruncate();
+            }
+        });
+    }
+});
+
 async function confirmTruncate() {
     var btn = document.getElementById('truncateConfirmBtn');
     var spinner = document.getElementById('truncateSpinner');
+    var inp = document.getElementById('truncateInput');
+    if (inp.value !== 'DELETE') return;
     btn.disabled = true;
     spinner.classList.remove('hidden');
 

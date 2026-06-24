@@ -17,6 +17,12 @@ def proxy(subpath):
     if 'token' not in session:
         return {'error': 'unauthorized'}, 401
 
+    # Role check: only TE can truncate
+    if subpath == 'api/v1/breakdowns/truncate':
+        user_roles = session.get('user', {}).get('roles', [])
+        if 'TE' not in user_roles:
+            return {'error': 'forbidden — TE role required'}, 403
+
     url = f'{DBR_API}/{subpath}'
     if request.query_string:
         url += f'?{request.query_string.decode()}'
@@ -30,7 +36,11 @@ def proxy(subpath):
         elif method == 'delete':
             resp = fn(url, headers={'Accept': 'application/json'}, timeout=30)
         else:
-            resp = fn(url, headers={'Accept': 'application/json'}, data=request.get_data(), timeout=30)
+            # Forward Content-Type (with boundary) for multipart/form-data
+            fwd_headers = {'Accept': 'application/json'}
+            if request.content_type:
+                fwd_headers['Content-Type'] = request.content_type
+            resp = fn(url, headers=fwd_headers, data=request.get_data(), timeout=90)
 
         excluded = ('content-encoding', 'transfer-encoding', 'content-length', 'connection')
         resp_headers = {k: v for k, v in resp.headers.items() if k.lower() not in excluded}
