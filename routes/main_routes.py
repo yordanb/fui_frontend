@@ -1,5 +1,6 @@
 from flask import Blueprint, render_template, request, session, redirect, url_for, current_app, flash, Response
 import requests
+import json
 
 main_bp = Blueprint('main', __name__)
 
@@ -10,7 +11,10 @@ def _api_get(endpoint, params=None):
     return r.json()
 
 def _proxy_request(method, endpoint, body=None):
-    headers = {'Authorization': f'Bearer {session["token"]}'}
+    token = session.get('token')
+    if not token:
+        return {'error': 'session expired'}, 401
+    headers = {'Authorization': f'Bearer {token}'}
     if body is not None:
         headers['Content-Type'] = 'application/json'
     url = f'{current_app.config["API_BASE"]}{endpoint}'
@@ -21,7 +25,13 @@ def _proxy_request(method, endpoint, body=None):
         r = fn(url, headers=headers, timeout=10)
     excluded = ('content-encoding', 'transfer-encoding', 'content-length', 'connection')
     resp_headers = {k: v for k, v in r.headers.items() if k.lower() not in excluded}
-    return Response(r.content, status=r.status_code, headers=resp_headers)
+    # Pastikan content-type JSON
+    if 'application/json' in r.headers.get('content-type', ''):
+        return Response(r.content, status=r.status_code, headers=resp_headers)
+    else:
+        # Force JSON response
+        result = {'error': 'backend error', 'status': r.status_code, 'detail': r.text[:500]}
+        return Response(json.dumps(result), status=r.status_code, content_type='application/json')
 
 
 @main_bp.route('/dashboard')

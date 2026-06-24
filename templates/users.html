@@ -243,19 +243,24 @@ async function saveUser(e) {
     
     try {
         var r = await fetch(url, { method: method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-        var result = await r.json();
+        if (!r.ok && r.status === 401) {
+            showFormError('Sesi habis. Silakan login ulang.');
+            return;
+        }
+        var text = await r.text();
+        var result;
+        try { result = JSON.parse(text); } catch(e) {
+            showFormError('Server error (status ' + r.status + '): ' + text.substring(0, 200));
+            return;
+        }
         if (r.ok) {
             hideUserModal();
             loadUsers();
         } else {
-            var err = document.getElementById('formError');
-            err.textContent = result.detail || JSON.stringify(result);
-            err.classList.remove('hidden');
+            showFormError(result.detail || JSON.stringify(result));
         }
     } catch(e) {
-        var err = document.getElementById('formError');
-        err.textContent = 'Error: ' + e.message;
-        err.classList.remove('hidden');
+        showFormError('Network error: ' + e.message);
     } finally {
         btn.disabled = false;
         btn.textContent = isEdit ? 'Simpan' : 'Tambah';
