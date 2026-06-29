@@ -31,34 +31,6 @@
 
 <!-- TAB: DATA -->
 <div id="tab-data" class="tab-content">
-    <!-- STATS ROW -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4" id="statsRow">
-        <div class="card p-4 relative overflow-hidden">
-            <div class="absolute top-0 right-0 w-16 h-16 bg-blue-50 rounded-bl-full"></div>
-            <div class="text-xs text-gray-400 font-medium">Total Records</div>
-            <div class="text-2xl font-bold text-blue-700 mt-1" id="statTotal">-</div>
-            <div class="text-xs text-gray-300 mt-0.5">di database</div>
-        </div>
-        <div class="card p-4 relative overflow-hidden">
-            <div class="absolute top-0 right-0 w-16 h-16 bg-green-50 rounded-bl-full"></div>
-            <div class="text-xs text-gray-400 font-medium">Unique CN</div>
-            <div class="text-2xl font-bold text-green-700 mt-1" id="statCn">-</div>
-            <div class="text-xs text-gray-300 mt-0.5">unit</div>
-        </div>
-        <div class="card p-4 relative overflow-hidden">
-            <div class="absolute top-0 right-0 w-16 h-16 bg-orange-50 rounded-bl-full"></div>
-            <div class="text-xs text-gray-400 font-medium">Total Breakdowns</div>
-            <div class="text-2xl font-bold text-orange-700 mt-1" id="statBreakdowns">-</div>
-            <div class="text-xs text-gray-300 mt-0.5">tercatat</div>
-        </div>
-        <div class="card p-4 relative overflow-hidden">
-            <div class="absolute top-0 right-0 w-16 h-16 bg-purple-50 rounded-bl-full"></div>
-            <div class="text-xs text-gray-400 font-medium">Filtered</div>
-            <div class="text-2xl font-bold text-purple-700 mt-1" id="statFiltered">-</div>
-            <div class="text-xs text-gray-300 mt-0.5">baris</div>
-        </div>
-    </div>
-
     <!-- FILTERS -->
     <div class="card p-4 mb-4">
         <div class="flex items-center gap-2 mb-3">
@@ -89,6 +61,9 @@
         <div class="flex gap-2 mt-3">
             <button onclick="loadDBR()" class="btn-primary text-xs py-2 px-4">🔎 Terapkan</button>
             <button onclick="resetFilter()" class="btn-sm bg-gray-100 text-gray-600 hover:bg-gray-200">Reset</button>
+            <div id="dateRange" class="text-xs text-gray-500 font-medium bg-gray-100 px-3 py-1.5 rounded-md flex items-center">
+                Date Range: Loading...
+            </div>
         </div>
     </div>
 
@@ -107,27 +82,27 @@
                 </div>
             </div>
         </div>
-        <div class="table-wrap">
-            <table class="w-full text-sm" id="dbrTable">
+        <div class="table-wrap overflow-x-auto">
+            <table class="w-full text-sm whitespace-nowrap" id="dbrTable">
                 <thead>
                     <tr>
-                        <th class="px-3 py-2.5 text-left border-b font-semibold text-gray-500 text-[11px] uppercase tracking-wider whitespace-nowrap bg-gray-50/50">#</th>
-                        <th class="px-3 py-2.5 text-left border-b font-semibold text-gray-500 text-[11px] uppercase tracking-wider whitespace-nowrap bg-gray-50/50">Date</th>
-                        <th class="px-3 py-2.5 text-left border-b font-semibold text-gray-500 text-[11px] uppercase tracking-wider whitespace-nowrap bg-gray-50/50">CN</th>
-                        <th class="px-3 py-2.5 text-left border-b font-semibold text-gray-500 text-[11px] uppercase tracking-wider whitespace-nowrap bg-gray-50/50">Crew</th>
-                        <th class="px-3 py-2.5 text-left border-b font-semibold text-gray-500 text-[11px] uppercase tracking-wider whitespace-nowrap bg-gray-50/50">Code</th>
-                        <th class="px-3 py-2.5 text-left border-b font-semibold text-gray-500 text-[11px] uppercase tracking-wider whitespace-nowrap bg-gray-50/50">Trouble Desc</th>
-                        <th class="px-3 py-2.5 text-center border-b font-semibold text-gray-500 text-[11px] uppercase tracking-wider whitespace-nowrap bg-gray-50/50">HM</th>
-                        <th class="px-3 py-2.5 text-left border-b font-semibold text-gray-500 text-[11px] uppercase tracking-wider whitespace-nowrap bg-gray-50/50">Loc</th>
-                        <th class="px-3 py-2.5 text-center border-b font-semibold text-gray-500 text-[11px] uppercase tracking-wider whitespace-nowrap bg-gray-50/50">Start BD</th>
-                        <th class="px-3 py-2.5 text-center border-b font-semibold text-gray-500 text-[11px] uppercase tracking-wider whitespace-nowrap bg-gray-50/50">BD Hour</th>
-                        <th class="px-3 py-2.5 text-center border-b font-semibold text-gray-500 text-[11px] uppercase tracking-wider whitespace-nowrap bg-gray-50/50">RFU</th>
-                        <th class="px-3 py-2.5 text-center border-b font-semibold text-gray-500 text-[11px] uppercase tracking-wider whitespace-nowrap bg-gray-50/50">MO</th>
-                        <th class="px-3 py-2.5 text-left border-b font-semibold text-gray-500 text-[11px] uppercase tracking-wider whitespace-nowrap bg-gray-50/50">Action Taken</th>
+                        <th class="px-2 py-2 text-left border-b font-semibold text-gray-500 text-[11px] uppercase tracking-wider whitespace-nowrap bg-gray-50/50">#</th>
+                        <th class="px-2 py-2 text-left border-b font-semibold text-gray-500 text-[11px] uppercase tracking-wider whitespace-nowrap bg-gray-50/50">Tanggal</th>
+                        <th class="px-2 py-2 text-left border-b font-semibold text-gray-500 text-[11px] uppercase tracking-wider whitespace-nowrap bg-gray-50/50">CN</th>
+                        <th class="px-2 py-2 text-left border-b font-semibold text-gray-500 text-[11px] uppercase tracking-wider whitespace-nowrap bg-gray-50/50">Crew</th>
+                        <th class="px-2 py-2 text-left border-b font-semibold text-gray-500 text-[11px] uppercase tracking-wider whitespace-nowrap bg-gray-50/50">Code</th>
+                        <th class="px-2 py-2 text-left border-b font-semibold text-gray-500 text-[11px] uppercase tracking-wider whitespace-nowrap bg-gray-50/50">Trouble Desc</th>
+                        <th class="px-2 py-2 text-center border-b font-semibold text-gray-500 text-[11px] uppercase tracking-wider whitespace-nowrap bg-gray-50/50">HM</th>
+                        <th class="px-2 py-2 text-left border-b font-semibold text-gray-500 text-[11px] uppercase tracking-wider whitespace-nowrap bg-gray-50/50">Loc</th>
+                        <th class="px-2 py-2 text-center border-b font-semibold text-gray-500 text-[11px] uppercase tracking-wider whitespace-nowrap bg-gray-50/50">BD Hour</th>
+                        <th class="px-2 py-2 text-center border-b font-semibold text-gray-500 text-[11px] uppercase tracking-wider whitespace-nowrap bg-gray-50/50">RFU</th>
+                        <th class="px-2 py-2 text-left border-b font-semibold text-gray-500 text-[11px] uppercase tracking-wider whitespace-nowrap bg-gray-50/50">Action Take</th>
+                        <th class="px-2 py-2 text-left border-b font-semibold text-gray-500 text-[11px] uppercase tracking-wider whitespace-nowrap bg-gray-50/50">Mechanic</th>
+                        <th class="px-2 py-2 text-left border-b font-semibold text-gray-500 text-[11px] uppercase tracking-wider whitespace-nowrap bg-gray-50/50">GL</th>
                     </tr>
                 </thead>
                 <tbody id="dbrBody">
-                    <tr><td colspan="13" class="text-center text-gray-400 py-12">Terapkan filter untuk melihat data</td></tr>
+                    <tr><td colspan="12" class="text-center text-gray-400 py-12">Terapkan filter untuk melihat data</td></tr>
                 </tbody>
             </table>
         </div>
@@ -333,8 +308,26 @@ async function loadMasterCodes() {
 // ============ SUMMARY STATS ============
 async function loadSummary() {
     try {
+        const response = await fetch('/dbr-api/api/v1/breakdowns?size=1000');
+        const d = await response.json();
+        const items = d.items || [];
+        if (items.length > 0) {
+            const dates = items.map(i => i.report_date).filter(d => d);
+            if (dates.length > 0) {
+                const sorted = dates.sort();
+                const min = sorted[0];
+                const max = sorted[sorted.length - 1];
+                document.getElementById('dateRange').textContent = `Date Range: ${min} s/d ${max}`;
+            }
+        }
+    } catch(e) { console.error("Summary error:", e); }
+
+    try {
         const r = await fetch(API + '/api/v1/dashboard/summary');
         const d = await r.json();
+        if (d.data_old && d.data_new) {
+            document.getElementById('dateRange').textContent = `Date Range: ${d.data_old} s/d ${d.data_new}`;
+        }
         document.getElementById('statTotal').textContent = (d.total_records || 0).toLocaleString();
         document.getElementById('statCn').textContent = (d.total_cn || 0).toLocaleString();
         document.getElementById('statBreakdowns').textContent = (d.total_breakdowns || 0).toLocaleString();
@@ -594,55 +587,35 @@ async function fetchPage(params) {
         document.getElementById('tableInfo').textContent = (d.items ? d.items.length : 0) + ' of ' + ((d.total || 0)).toLocaleString() + ' rows';
         document.getElementById('prevBtn').disabled = (page === 0);
     } catch(e) {
-        document.getElementById('dbrBody').innerHTML = '<tr><td colspan="13" class="text-center text-red-500 py-8">Error: ' + e.message + '</td></tr>';
+        document.getElementById('dbrBody').innerHTML = '<tr><td colspan="12" class="text-center text-red-500 py-8">Error: ' + e.message + '</td></tr>';
     }
 }
 
 function renderTable(items) {
     const tbody = document.getElementById('dbrBody');
     if (!items || !items.length) {
-        tbody.innerHTML = '<tr><td colspan="13" class="text-center text-gray-400 py-12">Tidak ada data</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="12" class="text-center text-gray-400 py-12">Tidak ada data</td></tr>';
         return;
     }
     tbody.innerHTML = items.map(function(r, i) {
         var code = r.breakdown_code || '';
         var codeColors = {SCM:'bg-green-100 text-green-700', USM:'bg-orange-100 text-orange-700', TSM:'bg-blue-100 text-blue-700', TUM:'bg-yellow-100 text-yellow-700', ICM:'bg-red-100 text-red-700'};
         var codeColor = codeColors[code] || 'bg-gray-100 text-gray-500';
-        var rfu = r.rfu_bour || '';
-        if (rfu === '####' || rfu === '#') rfu = '<span class="text-gray-300">—</span>';
-        var bdHour = r.start_bd_hour || '';
-        var startBd = r.start_breakdown || '';
-        if (startBd && startBd.length > 16) startBd = startBd.slice(0,16) + '…';
-        var mo = r.mo_number || '';
-        if (mo && mo.length > 8) mo = mo.slice(0,8) + '…';
-        return '<tr class="hover:bg-blue-50/50 border-b border-gray-50 transition-colors cursor-pointer" onclick="toggleDetail(this)">' +
-            '<td class="px-3 py-2.5 text-xs text-gray-400 font-mono">' + ((page * (parseInt(document.getElementById("pageSize").value)||50)) + i + 1) + '</td>' +
-            '<td class="px-3 py-2.5 whitespace-nowrap"><div class="text-xs font-semibold text-gray-800">' + (r.report_date || '-') + '</div></td>' +
-            '<td class="px-3 py-2.5 whitespace-nowrap"><div class="font-medium text-xs text-gray-900">' + (r.cn || '-') + '</div></td>' +
-            '<td class="px-3 py-2.5 whitespace-nowrap"><div class="text-xs">' + (r.crew_type || r.section || '-') + '</div></td>' +
-            '<td class="px-3 py-2.5"><span class="px-1.5 py-0.5 rounded text-xs font-semibold ' + codeColor + '">' + (code || '—') + '</span></td>' +
-            '<td class="px-3 py-2.5 max-w-[200px]"><div class="text-xs truncate" title="' + (r.trouble_description || '') + '">' + (r.trouble_description || '-') + '</div></td>' +
-            '<td class="px-3 py-2.5 text-center whitespace-nowrap"><span class="text-xs font-mono">' + (r.hm_start || '-') + '</span></td>' +
-            '<td class="px-3 py-2.5 whitespace-nowrap"><div class="text-xs">' + (r.location || '-') + '</div></td>' +
-            '<td class="px-3 py-2.5 text-center whitespace-nowrap"><span class="text-xs font-mono">' + startBd + '</span></td>' +
-            '<td class="px-3 py-2.5 text-center whitespace-nowrap"><span class="text-xs font-mono">' + bdHour + '</span></td>' +
-            '<td class="px-3 py-2.5 text-center whitespace-nowrap"><span class="text-xs font-mono">' + rfu + '</span></td>' +
-            '<td class="px-3 py-2.5 text-center whitespace-nowrap"><span class="text-xs font-mono">' + mo + '</span></td>' +
-            '<td class="px-3 py-2.5 max-w-[180px]"><div class="text-xs truncate" title="' + (r.action_taken || '') + '">' + (r.action_taken || '-') + '</div></td>' +
-            '</tr>' +
-            '<tr class="detail-row hidden bg-gray-50/50">' +
-            '<td colspan="13" class="px-4 py-3">' +
-            '<div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">' +
-            '<div><span class="font-medium text-gray-500">GL:</span> ' + (r.gl || '-') + '</div>' +
-            '<div><span class="font-medium text-gray-500">Mechanic:</span> ' + (r.mechanic || '-') + '</div>' +
-            '<div><span class="font-medium text-gray-500">WO:</span> ' + (r.wo_number || '-') + '</div>' +
-            '<div><span class="font-medium text-gray-500">Notif:</span> ' + (r.notification_number || '-') + '</div>' +
-            '<div><span class="font-medium text-gray-500">Start Time:</span> ' + (r.start_time || '-') + '</div>' +
-            '<div><span class="font-medium text-gray-500">Finish Time:</span> ' + (r.finish_time || '-') + '</div>' +
-            '<div><span class="font-medium text-gray-500">Total:</span> ' + (r.total || '-') + '</div>' +
-            '<div><span class="font-medium text-gray-500">Section:</span> ' + (r.section || '-') + '</div>' +
-            '</div>' +
-            '</td></tr>';
+        return '<tr class="hover:bg-blue-50/50 border-b border-gray-50 transition-colors">' +
+            '<td class="px-1 py-2 text-xs text-gray-400 font-mono">' + ((page * (parseInt(document.getElementById("pageSize").value)||50)) + i + 1) + '</td>' +
+            '<td class="px-1 py-2 whitespace-nowrap"><div class="text-xs font-semibold text-gray-800">' + (r.report_date || '-') + '</div></td>' +
+            '<td class="px-1 py-2 whitespace-nowrap"><div class="font-medium text-xs text-gray-900">' + (r.cn || '-') + '</div></td>' +
+            '<td class="px-1 py-2 whitespace-nowrap"><div class="text-xs">' + (r.crew_type || r.section || '-') + '</div></td>' +
+            '<td class="px-1 py-2"><span class="px-1.5 py-0.5 rounded text-xs font-semibold ' + codeColor + '">' + (code || '—') + '</span></td>' +
+            '<td class="px-1 py-2"><div class="text-xs truncate max-w-[130px]" title="' + (r.trouble_description || '') + '">' + (r.trouble_description || '-') + '</div></td>' +
+            '<td class="px-1 py-2 text-center whitespace-nowrap"><span class="text-xs font-mono">' + (r.hm_start || '-') + '</span></td>' +
+            '<td class="px-1 py-2 whitespace-nowrap"><div class="text-xs truncate max-w-[100px]" title="' + (r.location || '') + '">' + (r.location || '-') + '</div></td>' +
+            '<td class="px-1 py-2 text-center whitespace-nowrap"><span class="text-xs font-mono">' + (r.start_bd_hour ? r.start_bd_hour.split(':').slice(0,2).join(':') : '-') + '</span></td>' +
+            '<td class="px-1 py-2 text-center whitespace-nowrap"><span class="text-xs font-mono">' + (r.rfu_bour ? r.rfu_bour.split(':').slice(0,2).join(':') : '-') + '</span></td>' +
+            '<td class="px-1 py-2"><div class="text-xs truncate max-w-[120px]" title="' + (r.action_taken || '') + '">' + (r.action_taken || '-') + '</div></td>' +
+            '<td class="px-1 py-2 whitespace-nowrap"><div class="text-xs">' + (r.mechanic || '-') + '</div></td>' +
+            '<td class="px-1 py-2 whitespace-nowrap"><div class="text-xs">' + (r.gl || '-') + '</div></td>' +
+            '</tr>';
     }).join('');
 }
 

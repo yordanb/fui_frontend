@@ -6,8 +6,8 @@
     <p class="text-gray-500 text-xs">Dashboard analisa sampel oil</p>
 </div>
 
-<!-- STATS ROW -->
-<div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4" id="statsRow">
+<!-- STATS ROW (HIDDEN) -->
+<div class="hidden grid grid-cols-2 md:grid-cols-4 gap-3 mb-4" id="statsRow">
     <div class="card p-4">
         <div class="text-xs text-gray-400">Total Sampel</div>
         <div class="text-2xl font-bold text-blue-700" id="statTotal">-</div>
@@ -52,6 +52,7 @@
     <div class="flex gap-3 mt-3">
         <button onclick="loadDashboard()" class="btn-primary text-sm">🔎 Terapkan Filter</button>
         <button onclick="resetFilter()" class="btn-sm bg-gray-200 text-gray-600 hover:bg-gray-300">Reset</button>
+        <div id="dateRange" class="text-xs text-gray-500 font-medium bg-gray-100 px-3 py-1.5 rounded-md flex items-center">Date Range: Loading...</div>
         <span class="text-xs text-gray-400 self-center">Enter untuk filter</span>
     </div>
 </div>
@@ -98,8 +99,7 @@ let lastResult = null;
 
 const ELEM_LABELS = ['Visc','Fuel','Soot','Oxi','Nitr','Wtr','Tbn','Si','Fe','Cu','Al','Cr','Pb','Na'];
 const ELEM_COLS  = ['visc','fuel','soot','oxi','nitr','water','tbn','si','fe','cu','al','cr','pb','na'];
-const ELEM_MAP   = [8,10,13,9,12,7,11,5,3,2,0,1,4,6];
-const ELEM_THRESH = { fe:50, cr:20, cu:30, pb:20, si:20, water:1, visc:80, soot:5 };
+const ELEM_THRESH = { fe:50, cr:20, cu:30, pb:20, si:20, water:1, visc:80, soot:5, al:10, na:10, oxi:20, nitr:10, fuel:3 };
 
 function getFilterParams() {
     const fVessel = document.getElementById('fVessel').value.trim();
@@ -163,7 +163,6 @@ function renderTable(items) {
         return;
     }
     tbody.innerHTML = items.map(r => {
-        const elemVals = ELEM_COLS.map(c => r[c]);
         const cond = (r.condition||'').toLowerCase();
         const condBg = cond === 'normal' ? 'bg-green-100 text-green-700' :
                        cond.includes('crit') ? 'bg-red-100 text-red-700 font-bold' :
@@ -172,11 +171,12 @@ function renderTable(items) {
 
         let elemHtml = '<div class="grid grid-cols-7 gap-x-2 gap-y-1 text-xs">';
         for (let i = 0; i < ELEM_LABELS.length; i++) {
-            const v = elemVals[ELEM_MAP[i]];
-            const n = parseFloat(v);
+            const colName = ELEM_COLS[i];
+            const val = r[colName];
+            const n = parseFloat(val);
             let cl = '';
-            if (n > 0) {
-                const th = ELEM_THRESH[ELEM_COLS[i]];
+            if (!isNaN(n)) {
+                const th = ELEM_THRESH[colName];
                 if (th && n > th) cl = 'text-red-600 font-bold';
             }
             const display = isNaN(n) ? '-' : n.toFixed(1);
@@ -187,7 +187,22 @@ function renderTable(items) {
         return `<tr class="hover:bg-blue-50 border-b">
             <td class="px-3 py-2"><div class="font-medium">${r.vesselid||''}</div><div class="text-xs text-gray-500">${r.unit_id||''}</div></td>
             <td class="px-3 py-2 whitespace-nowrap"><div>${r.sample_date ? String(r.sample_date).substring(0,10) : ''}</div><div class="text-xs text-gray-500">${r.unit_time||''}</div></td>
-            <td class="px-3 py-2">${elemHtml}</td>
+            <td class="px-3 py-2 text-xs">
+                <div class="grid grid-cols-7 gap-x-2 gap-y-1">
+                    ${ELEM_LABELS.map((label, i) => {
+                        const colName = ELEM_COLS[i];
+                        const val = r[colName];
+                        const n = parseFloat(val);
+                        let cl = '';
+                        if (!isNaN(n)) {
+                            const th = ELEM_THRESH[colName];
+                            if (th && n > th) cl = 'text-red-600 font-bold';
+                        }
+                        const display = isNaN(n) ? '-' : n.toFixed(1);
+                        return `<div><span class="text-gray-400">${label}</span> <span class="${cl}">${display}</span></div>`;
+                    }).join('')}
+                </div>
+            </td>
             <td class="px-3 py-2 text-center whitespace-nowrap"><span class="px-2 py-1 rounded text-xs ${condBg}">${r.condition||'-'}</span></td>
         </tr>`;
     }).join('');
@@ -250,6 +265,18 @@ document.querySelectorAll('#fUnit,#fVessel,#fDateFrom,#fDateTo').forEach(el => {
     el.addEventListener('keydown', e => { if (e.key === 'Enter') loadDashboard(); });
 });
 
-document.addEventListener('DOMContentLoaded', () => { loadUnitOptions(''); loadDashboard(); });
+document.addEventListener('DOMContentLoaded', () => { loadUnitOptions(''); loadDashboard(); fetchDateRange(); });
+
+async function fetchDateRange() {
+    try {
+        const response = await fetch('/oil-lab-api/api/samples/stats');
+        const d = await response.json();
+        if (d.data_old && d.data_new) {
+            const min = d.data_old.split('T')[0];
+            const max = d.data_new.split('T')[0];
+            document.getElementById('dateRange').textContent = 'Date Range: ' + min + ' s/d ' + max;
+        }
+    } catch(e) { console.error('Range error:', e); }
+}
 </script>
 {% endblock %}

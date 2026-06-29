@@ -1,5 +1,15 @@
 FROM python:3.12-slim
 
+# Install dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3-dev \
+    libcairo2 \
+    libpango-1.0-0 \
+    libpangocairo-1.0-0 \
+    libgobject-2.0-0 \
+    libffi-dev \
+    && rm -rf /var/lib/apt/lists/*
+
 RUN addgroup --system --gid 1001 appgroup && \
     adduser --system --uid 1001 --gid 1001 --no-create-home appuser
 

@@ -29,18 +29,18 @@ def proxy(subpath):
 
     method = request.method.lower()
     fn = getattr(requests, method)
+    headers = {'Authorization': f'Bearer {session.get("token")}', 'Accept': 'application/json'}
 
     try:
         if method == 'get':
-            resp = fn(url, headers={'Accept': 'application/json'}, params=request.args, timeout=30)
+            resp = fn(url, headers=headers, params=request.args, timeout=30)
         elif method == 'delete':
-            resp = fn(url, headers={'Accept': 'application/json'}, timeout=30)
+            resp = fn(url, headers=headers, timeout=30)
         else:
-            # Forward Content-Type (with boundary) for multipart/form-data
-            fwd_headers = {'Accept': 'application/json'}
+            # Forward Content-Type
             if request.content_type:
-                fwd_headers['Content-Type'] = request.content_type
-            resp = fn(url, headers=fwd_headers, data=request.get_data(), timeout=90)
+                headers['Content-Type'] = request.content_type
+            resp = fn(url, headers=headers, data=request.get_data(), timeout=90)
 
         excluded = ('content-encoding', 'transfer-encoding', 'content-length', 'connection')
         resp_headers = {k: v for k, v in resp.headers.items() if k.lower() not in excluded}

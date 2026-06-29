@@ -1,0 +1,276 @@
+{% extends "base.html" %}
+{% block title %}Equipment Dashboard{% endblock %}
+{% block content %}
+<div class="mb-6">
+    <div class="flex justify-between items-center">
+        <h1 class="text-xl font-bold text-gray-900">🛠️ Equipment Management</h1>
+        <div class="flex items-center gap-3">
+            {% if session.user and 'TE' in session.user.roles %}
+            <button onclick="openAddModal()" class="px-3 py-1.5 bg-green-600 text-white rounded text-xs font-semibold hover:bg-green-700">+ Add New</button>
+            {% endif %}
+            <span id="totalInfo" class="text-xs text-gray-500"></span>
+            <select id="pageSize" onchange="currentPage=1;loadEquipment()" class="p-1 border border-gray-300 rounded text-xs">
+                <option value="20" selected>20</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+            </select>
+        </div>
+    </div>
+    <div class="mt-4 p-4 bg-white rounded-lg shadow-sm border border-gray-200">
+        <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Select Equipment Table</label>
+        <div class="flex gap-2 items-end">
+            <select id="tableSelector" onchange="currentPage=1;loadEquipment()" class="w-full md:w-64 p-2 border border-gray-300 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500">
+                <option value="tb_lighting_eqp">SPEX Lighting</option>
+                <option value="tb_spex_mobile">SPEX Mobile</option>
+                <option value="tb_spex_pumping">SPEX Pumping</option>
+                <option value="tb_bigwheel">Big Wheel</option>
+            </select>
+            <input type="text" id="cnSearch" placeholder="Search CN..." class="p-2 border border-gray-300 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500">
+            <button onclick="filterByCN()" class="px-3 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700">Search</button>
+        </div>
+    </div>
+</div>
+
+<div class="overflow-x-auto bg-white rounded-lg shadow-sm border border-gray-200">
+    <table class="w-full text-xs text-left" id="eqpTable">
+        <thead class="bg-gray-50 border-b border-gray-200 uppercase font-semibold text-gray-600">
+            <tr>
+                <th class="p-3">No</th>
+                <th class="p-3">CN</th>
+                <th class="p-3">Unit Type</th>
+                <th class="p-3">Unit Model</th>
+                <th class="p-3">Serial No</th>
+                <th class="p-3">Engine Merk</th>
+                <th class="p-3">Arrived</th>
+                <th class="p-3 text-center">Status</th>
+                <th class="p-3 text-center">Actions</th>
+            </tr>
+        </thead>
+        <tbody id="eqpBody" class="divide-y divide-gray-100">
+            <tr><td colspan="9" class="p-8 text-center text-gray-400">Loading...</td></tr>
+        </tbody>
+    </table>
+</div>
+
+<div id="pagination" class="flex justify-center gap-1 mt-4"></div>
+
+<!-- Detail Modal -->
+<div id="detailModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-lg max-h-[80vh] overflow-y-auto p-6 relative">
+        <button onclick="closeDetailModal()" class="absolute top-3 right-3 text-gray-500 hover:text-black text-2xl">&times;</button>
+        <h3 class="font-bold text-lg mb-4">Detail Equipment</h3>
+        <div id="modalContent" class="text-sm space-y-1"></div>
+    </div>
+</div>
+
+<!-- Edit/Add Modal -->
+<div id="editModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-lg max-h-[80vh] overflow-y-auto p-6 relative">
+        <button onclick="closeEditModal()" class="absolute top-3 right-3 text-gray-500 hover:text-black text-2xl">&times;</button>
+        <h3 class="font-bold text-lg mb-4" id="editModalTitle">Edit Equipment</h3>
+        <div id="editForm" class="text-sm space-y-3"></div>
+        <div class="mt-4 pt-4 border-t flex justify-end gap-2">
+            <button onclick="closeEditModal()" class="px-4 py-1.5 border rounded text-xs hover:bg-gray-50">Cancel</button>
+            <button onclick="saveEdit()" class="px-4 py-1.5 bg-blue-600 text-white rounded text-xs font-semibold hover:bg-blue-700">Save</button>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentData = [];
+function filterByCN() {
+    const searchInput = document.getElementById('cnSearch');
+    if (!searchInput) { loadEquipment(); return; }
+    const search = searchInput.value.toLowerCase().trim();
+    if (!search) { loadEquipment(); return; }
+    const filtered = currentData.filter(r => (r.cn || '').toLowerCase().includes(search));
+    currentPage = 1;
+    renderTable(filtered);
+}
+
+function renderTable(data) {
+    var isTE = {{ (session.user and 'TE' in session.user.roles)|lower }};
+    const tbody = document.getElementById('eqpBody');
+    const size = parseInt(document.getElementById('pageSize').value) || 20;
+    const start = (currentPage - 1) * size;
+    const pageData = data.slice(start, start + size);
+    document.getElementById('totalInfo').textContent = data.length + ' records';
+    
+    if (data.length > 0) {
+        tbody.innerHTML = pageData.map((row, i) =>
+            "<tr class='hover:bg-blue-50'>" +
+            "<td class='p-3'>" + (start + i + 1) + "</td>" +
+            "<td class='p-3 font-semibold'>" + (row.cn || '-') + "</td>" +
+            "<td class='p-3'>" + (row.unit_type || '-') + "</td>" +
+            "<td class='p-3'>" + (row.unit_product || row.unit_model || row.engine_model || '-') + "</td>" +
+            "<td class='p-3'>" + (row.cn_serial_no || row.serial_no || '-') + "</td>" +
+            "<td class='p-3'>" + (row.engine_merk || row.engine_genset_merk || '-') + "</td>" +
+            "<td class='p-3'>" + (row.arrived_year || '-') + (row.arrived_month ? ' | ' + row.arrived_month : '') + "</td>" +
+            "<td class='p-3 text-center'>" + (row.aktif ? "<span class='px-2 py-0.5 bg-green-100 text-green-800 rounded-full text-[10px] font-bold'>Aktif</span>" : "<span class='px-2 py-0.5 bg-red-100 text-red-800 rounded-full text-[10px] font-bold'>Tidak Aktif</span>") + "</td>" +
+            "<td class='p-3 text-center whitespace-nowrap'>" +
+                "<button onclick='readRow(" + (start + i) + ")' class='px-2 py-1 bg-yellow-50 text-yellow-700 rounded text-xs font-semibold mr-1'>Read</button>" +
+                (isTE ? "<button onclick='editRow(" + (start + i) + ")' class='px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs font-semibold mr-1'>Edit</button>" +
+                "<button onclick='deleteRow(" + (start + i) + ")' class='px-2 py-1 bg-red-50 text-red-700 rounded text-xs font-semibold'>Del</button>" : "") +
+            "</td></tr>"
+        ).join('');
+    } else {
+        tbody.innerHTML = '<tr><td colspan="9" class="p-8 text-center text-gray-400">No data</td></tr>';
+    }
+}
+
+let currentPage = 1;
+let editingIndex = null;
+
+var isTE = {{ (session.user and 'TE' in session.user.roles)|lower }};
+
+async function loadEquipment() {
+    const table = document.getElementById('tableSelector').value;
+    const tbody = document.getElementById('eqpBody');
+    tbody.innerHTML = '<tr><td colspan="9" class="p-8 text-center text-gray-400">Loading...</td></tr>';
+
+    try {
+        const res = await fetch('/dbr-api/api/v1/equipment/' + table);
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const data = await res.json();
+        if (!Array.isArray(data)) throw new Error('Invalid response: ' + JSON.stringify(data).substring(0, 100));
+        currentData = data;
+
+        const size = parseInt(document.getElementById('pageSize').value) || 20;
+        const start = (currentPage - 1) * size;
+        const pageData = currentData.slice(start, start + size);
+
+        document.getElementById('totalInfo').textContent = currentData.length + ' records';
+
+        // Detect table type
+        const isPumping = (table === 'tb_spex_pumping');
+
+        if (currentData.length > 0) {
+            tbody.innerHTML = pageData.map((row, i) =>
+                "<tr class='hover:bg-blue-50'>" +
+                "<td class='p-3'>" + (start + i + 1) + "</td>" +
+                "<td class='p-3 font-semibold'>" + (row.cn || '-') + "</td>" +
+                "<td class='p-3'>" + (row.unit_type || '-') + "</td>" +
+                "<td class='p-3'>" + (row.unit_product || row.unit_model || row.engine_model || '-') + "</td>" +
+                "<td class='p-3'>" + (row.cn_serial_no || row.serial_no || '-') + "</td>" +
+                "<td class='p-3'>" + (row.engine_merk || row.engine_genset_merk || '-') + "</td>" +
+                "<td class='p-3'>" + (row.arrived_year || '-') + (row.arrived_month ? ' | ' + row.arrived_month : '') + "</td>" +
+                "<td class='p-3 text-center'>" + (row.aktif ? "<span class='px-2 py-0.5 bg-green-100 text-green-800 rounded-full text-[10px] font-bold'>Aktif</span>" : "<span class='px-2 py-0.5 bg-red-100 text-red-800 rounded-full text-[10px] font-bold'>Tidak Aktif</span>") + "</td>" +
+                "<td class='p-3 text-center whitespace-nowrap'>" +
+                    "<button onclick='readRow(" + (start + i) + ")' class='px-2 py-1 bg-yellow-50 text-yellow-700 rounded text-xs font-semibold mr-1'>Read</button>" +
+                    (isTE ? "<button onclick='editRow(" + (start + i) + ")' class='px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs font-semibold mr-1'>Edit</button>" +
+                    "<button onclick='deleteRow(" + (start + i) + ")' class='px-2 py-1 bg-red-50 text-red-700 rounded text-xs font-semibold'>Del</button>" : "") +
+                "</td></tr>"
+            ).join('');
+            renderPagination(size);
+        } else {
+            tbody.innerHTML = '<tr><td colspan="9" class="p-8 text-center text-gray-400">No data</td></tr>';
+            document.getElementById('pagination').innerHTML = '';
+        }
+    } catch (e) {
+        tbody.innerHTML = '<tr><td colspan="9" class="p-8 text-center text-red-500 text-xs">Error: ' + e.message + '</td></tr>';
+        document.getElementById('pagination').innerHTML = '';
+    }
+}
+
+function renderPagination(size) {
+    const total = Math.ceil(currentData.length / size);
+    let h = '';
+    if (currentPage > 1) h += "<button onclick='goToPage(" + (currentPage-1) + ")' class='px-3 py-1 border rounded text-xs bg-white hover:bg-gray-100'>&lsaquo;</button>";
+    for (let i = 1; i <= total; i++) {
+        if (i === currentPage) h += "<button class='px-3 py-1 border rounded text-xs bg-blue-600 text-white'>" + i + "</button>";
+        else if (i <= 3 || i >= total - 2 || Math.abs(i - currentPage) <= 1) h += "<button onclick='goToPage(" + i + ")' class='px-3 py-1 border rounded text-xs bg-white hover:bg-gray-100'>" + i + "</button>";
+        else if (i === 4 || i === total - 3) h += "<span class='px-2 py-1 text-xs text-gray-400'>...</span>";
+    }
+    if (currentPage < total) h += "<button onclick='goToPage(" + (currentPage+1) + ")' class='px-3 py-1 border rounded text-xs bg-white hover:bg-gray-100'>&rsaquo;</button>";
+    document.getElementById('pagination').innerHTML = h;
+}
+
+function goToPage(p) { currentPage = p; loadEquipment(); window.scrollTo({top: 0, behavior: 'smooth'}); }
+
+function viewDetail(index) {
+    const row = currentData[index];
+    if (!row) return;
+    document.getElementById('modalContent').innerHTML = Object.entries(row).map(([k, v]) =>
+        "<div class='flex border-b py-1.5'><span class='font-semibold w-1/3 capitalize text-gray-600'>" + k.replace(/_/g, ' ') + "</span><span class='w-2/3'>" + (v || '-') + "</span></div>"
+    ).join('');
+    document.getElementById('detailModal').classList.remove('hidden');
+}
+function closeDetailModal() { document.getElementById('detailModal').classList.add('hidden'); }
+
+function readRow(index) {
+    const row = currentData[index];
+    if (!row) return;
+    let html = '<div id="detailModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"()"><div class="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[80vh] overflow-y-auto p-6" onclick="event.stopPropagation()"><div class="flex justify-between items-center mb-4"><h3 class="text-lg font-bold">� Detail Equipment</h3><button onclick="this.closest(\'#detailModal\').remove()" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button></div><div class="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">';
+    for (const [key, val] of Object.entries(row)) {
+        const display = val === null || val === undefined ? '-' : String(val);
+        html += '<div class="border-b border-gray-100 py-2 break-words"><span class="font-semibold text-gray-500 uppercase text-[10px]">' + key + '</span><br><span class="text-gray-800">' + display + '</span></div>';
+    }
+    html += '</div><div class="mt-4 text-right"><button onclick="this.closest(\'#detailModal\').remove()" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg text-sm hover:bg-gray-300">Close</button></div></div></div>';
+    document.body.insertAdjacentHTML('beforeend', html);
+}
+
+function editRow(index) {
+    editingIndex = index;
+    const row = currentData[index];
+    if (!row) return;
+    document.getElementById('editModalTitle').textContent = 'Edit: ' + (row.cn || '#' + row.no);
+    const skip = ['no', 'created_at'];
+    document.getElementById('editForm').innerHTML = Object.entries(row).filter(([k]) => !skip.includes(k)).map(([k, v]) => {
+        const label = k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+        return "<div><label class='block text-xs font-semibold text-gray-500 mb-1'>" + label + "</label><input id='edit_" + k + "' value='" + (v || '') + "' class='w-full p-2 border rounded text-sm'></div>";
+    }).join('');
+    document.getElementById('editModal').classList.remove('hidden');
+}
+function closeEditModal() { document.getElementById('editModal').classList.add('hidden'); editingIndex = null; }
+
+async function saveEdit() {
+    const table = document.getElementById('tableSelector').value;
+    const first = currentData[0] || {};
+    const skip = ['no', 'created_at'];
+    const payload = { data: {} };
+    Object.keys(first).forEach(k => { if (!skip.includes(k)) { const el = document.getElementById('edit_' + k); if (el) payload.data[k] = el.value; } });
+    const url = editingIndex !== null ? '/dbr-api/api/v1/equipment/' + table + '/' + currentData[editingIndex].no : '/dbr-api/api/v1/equipment/' + table;
+    const method = editingIndex !== null ? 'PUT' : 'POST';
+    try {
+        const res = await fetch(url, { method: method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        const result = await res.json();
+        if (res.ok) { closeEditModal(); loadEquipment(); alert('Saved!'); }
+        else alert('Error: ' + (result.detail || 'Unknown'));
+    } catch (e) { alert('Network error: ' + e.message); }
+}
+
+async function deleteRow(index) {
+    const row = currentData[index];
+    if (!row) return;
+    if (!confirm('Delete ' + (row.cn || '#' + row.no) + '?')) return;
+    const table = document.getElementById('tableSelector').value;
+    try {
+        const res = await fetch('/dbr-api/api/v1/equipment/' + table + '/' + row.no, { method: 'DELETE' });
+        if (res.ok) { alert('Deleted!'); loadEquipment(); }
+        else { const r = await res.json(); alert('Error: ' + (r.detail || 'Unknown')); }
+    } catch (e) { alert('Network error: ' + e.message); }
+}
+
+function openAddModal() {
+    editingIndex = null;
+    document.getElementById('editModalTitle').textContent = 'Add New Equipment';
+    fetch('/dbr-api/api/v1/equipment/tb_lighting_eqp').then(r => r.json()).then(data => {
+        if (data.length > 0) {
+            const empty = {};
+            Object.keys(data[0]).forEach(k => { if (k !== 'no' && k !== 'created_at') empty[k] = ''; });
+            const skip = ['no', 'created_at'];
+            document.getElementById('editForm').innerHTML = Object.entries(empty).filter(([k]) => !skip.includes(k)).map(([k]) => {
+                const label = k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+                return "<div><label class='block text-xs font-semibold text-gray-500 mb-1'>" + label + "</label><input id='edit_" + k + "' class='w-full p-2 border rounded text-sm'></div>";
+            }).join('');
+        }
+        document.getElementById('editModal').classList.remove('hidden');
+    });
+}
+
+document.getElementById('detailModal').addEventListener('click', function(e) { if (e.target === this) closeDetailModal(); });
+document.getElementById('editModal').addEventListener('click', function(e) { if (e.target === this) closeEditModal(); });
+
+loadEquipment();
+</script>
+{% endblock %}

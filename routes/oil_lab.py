@@ -24,13 +24,17 @@ def proxy(subpath):
     method = request.method.lower()
     fn = getattr(requests, method)
 
+    headers = {'Authorization': f'Bearer {session.get("token")}', 'Accept': 'application/json'}
+
     try:
         if method == 'get':
-            resp = fn(url, headers={'Accept': 'application/json'}, params=request.args, timeout=30)
+            resp = fn(url, headers=headers, params=request.args, timeout=30)
         elif method == 'delete':
-            resp = fn(url, headers={'Accept': 'application/json'}, timeout=30)
+            resp = fn(url, headers=headers, timeout=30)
         else:
-            resp = fn(url, headers={'Accept': 'application/json'}, data=request.get_data(), timeout=30)
+            if request.content_type:
+                headers['Content-Type'] = request.content_type
+            resp = fn(url, headers=headers, data=request.get_data(), timeout=30)
 
         excluded = ('content-encoding', 'transfer-encoding', 'content-length', 'connection')
         resp_headers = {k: v for k, v in resp.headers.items() if k.lower() not in excluded}

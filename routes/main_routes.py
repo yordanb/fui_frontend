@@ -33,7 +33,6 @@ def _proxy_request(method, endpoint, body=None):
         result = {'error': 'backend error', 'status': r.status_code, 'detail': r.text[:500]}
         return Response(json.dumps(result), status=r.status_code, content_type='application/json')
 
-
 @main_bp.route('/dashboard')
 def dashboard():
     if 'token' not in session:
@@ -54,19 +53,23 @@ def dashboard():
         flash(f'Error: {e}', 'error')
         return render_template('dashboard.html', total=0, recent=[], stats={})
 
-
-# ─── Users page (all roles) ───
+# ─── Users page (TE/ADMIN_TE only) ───
 @main_bp.route('/users')
 def users():
     if 'token' not in session:
         return redirect(url_for('auth.login_page'))
+    
+    roles = session.get('user', {}).get('roles', [])
+    if 'TE' not in roles:
+        flash('Akses ditolak: Hanya untuk Technical Expert', 'error')
+        return redirect(url_for('main.dashboard'))
+        
     try:
         data = _api_get('/users/')
         return render_template('users.html', users=data)
     except:
         flash('Failed to load users', 'error')
         return render_template('users.html', users=[])
-
 
 # ─── User CRUD API proxy (TE only for write) ───
 @main_bp.route('/users/api/users', methods=['GET', 'POST'])
@@ -87,7 +90,6 @@ def user_list_create():
     except Exception as e:
         return {'error': str(e)}, 500
 
-
 @main_bp.route('/users/api/users/<int:user_id>', methods=['GET', 'PUT', 'DELETE'])
 def user_detail(user_id):
     if 'token' not in session:
@@ -106,8 +108,31 @@ def user_detail(user_id):
     except Exception as e:
         return {'error': str(e)}, 500
 
+@main_bp.route('/users/api/users/<int:user_id>/permissions', methods=['GET', 'PUT'])
+def user_permissions(user_id):
+    if 'token' not in session:
+        return {'error': 'unauthorized'}, 401
+    if 'TE' not in session.get('user', {}).get('roles', []):
+        return {'error': 'forbidden'}, 403
+    try:
+        body = request.get_json(force=True) if request.method == 'PUT' else None
+        return _proxy_request(request.method, f'/users/{user_id}/permissions', body)
+    except Exception as e:
+        return {'error': str(e)}, 500
 
-# ─── FUI ───
+# ─── Equipment ───
+@main_bp.route('/equipment')
+def equipment():
+    if 'token' not in session:
+        return redirect(url_for('auth.login_page'))
+    return render_template('equipment.html')
+
+@main_bp.route('/fui-form')
+def fui_form():
+    if 'token' not in session:
+        return redirect(url_for('auth.login_page'))
+    return render_template('fui_form.html')
+
 @main_bp.route('/fui')
 def fui_list():
     if 'token' not in session:
@@ -126,7 +151,6 @@ def fui_list():
         flash('Failed to load FUI list', 'error')
         return render_template('fui_list.html', items=[], total=0, page=1, max_page=1, status=status)
 
-
 @main_bp.route('/fui/<int:fui_id>')
 def fui_detail(fui_id):
     if 'token' not in session:
@@ -140,3 +164,45 @@ def fui_detail(fui_id):
     except Exception as e:
         flash(f'Error: {e}', 'error')
         return redirect(url_for('main.fui_list'))
+
+@main_bp.route('/oil-lab')
+def oil_lab():
+    if 'token' not in session:
+        return redirect(url_for('auth.login_page'))
+    return render_template('oil_dashboard.html')
+
+from weasyprint import HTML
+
+@main_bp.route('/fui-export-pdf')
+def fui_export_pdf():
+    cn = request.args.get('cn', '')
+    if not cn:
+        return redirect(url_for('main.fui_form'))
+    
+    token = session.get('token')
+    headers = {'Authorization': f'Bearer {token}', 'Accept': 'application/json'}
+    
+    # Fetch data
+    table = request.args.get('table', 'tb_lighting_eqp') 
+    
+    eqp_data = requests.get(f'http://dbr-api:8010/api/v1/equipment/{table}', headers=headers).json()
+    eqp_data = [row for row in eqp_data if (row.get('cn') or '').lower() == cn.lower()]
+    oil_data = requests.get(f'http://oil-lab-api:8008/api/samples/search', headers=headers, params={'vessel': cn, 'page': 1, 'page_size': 50}).json().get('items', [])
+    dbr_data = requests.get(f'http://dbr-api:8010/api/v1/breakdowns', headers=headers, params={'cn': cn, 'breakdown_code': 'USM', 'size': 10}).json().get('items', [])
+
+    has_non_engine = False
+    if oil_data:
+        for row in oil_data:
+            comp = (row.get('unit_id', '') + row.get('component', '')).lower()
+            if 'engine' not in comp:
+                has_non_engine = True
+                break
+    
+    orientation = 'portrait' if not has_non_engine else 'landscape'
+
+    html = render_template('fui_pdf_template.html', cn=cn, eqp_data=eqp_data, oil_data=oil_data, dbr_data=dbr_data, orientation=orientation)
+    pdf = HTML(string=html).write_pdf()
+    
+    response = Response(pdf, mimetype='application/pdf')
+    response.headers['Content-Disposition'] = f'inline; filename=FUI_{cn}.pdf'
+    return response

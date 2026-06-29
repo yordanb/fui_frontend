@@ -131,7 +131,7 @@ async function loadUsers() {
         const data = await r.json();
         renderUsers(data);
     } catch(e) {
-        document.getElementById('usersBody').innerHTML = '<tr><td colspan="6" class="text-center text-red-500 py-8">Gagal muat data: ' + e.message + '</td></tr>';
+        document.getElementById('usersBody').innerHTML = '<tr><td colspan="5" class="text-center text-red-500 py-8">Gagal muat data: ' + e.message + '</td></tr>';
     }
 }
 
@@ -139,7 +139,7 @@ function renderUsers(users) {
     var isTE = {{ (session.user and 'TE' in session.user.roles)|lower }};
     var tbody = document.getElementById('usersBody');
     if (!users || !users.length) {
-        tbody.innerHTML = '<tr><td colspan="{{ 6 if session.user and "TE" in session.user.roles else 5 }}" class="text-center text-gray-400 py-12">Belum ada user</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="' + (isTE ? 6 : 5) + '" class="text-center text-gray-400 py-12">Belum ada user</td></tr>';
         return;
     }
     tbody.innerHTML = users.map(function(u) {
@@ -152,7 +152,7 @@ function renderUsers(users) {
             '<button onclick="editUser(' + u.id + ')" class="text-blue-600 hover:text-blue-800 text-xs font-medium mr-2">✏️ Edit</button>' +
             '<button onclick="showDelete(' + u.id + ',\'' + u.username.replace(/'/g,'\\\'\'') + '\')" class="text-red-600 hover:text-red-800 text-xs font-medium">🗑️ Hapus</button>' +
             '</td>' : '';
-        var colspan = isTE ? 6 : 5;
+
         return '<tr class="hover:bg-blue-50/50 border-b border-gray-50 transition-colors">' +
             '<td class="px-4 py-3"><div class="flex items-center gap-2.5">' +
             '<div class="w-7 h-7 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0">' + (u.fullname || u.username)[0].toUpperCase() + '</div>' +
