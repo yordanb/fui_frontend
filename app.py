@@ -1,4 +1,5 @@
 import os
+import logging
 from datetime import timedelta
 from flask import Flask, redirect, url_for, session
 from routes.auth import auth_bp
@@ -10,6 +11,14 @@ from routes.api_proxy import api_proxy_bp
 from routes.upload import upload_bp
 
 app = Flask(__name__)
+
+# ── Logging ──
+if os.environ.get('FLASK_ENV') == 'production':
+    gunicorn_logger = logging.getLogger('gunicorn.error')
+    app.logger.handlers = gunicorn_logger.handlers
+    app.logger.setLevel(gunicorn_logger.level)
+else:
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
 
 # ── Production-ready config ──
 app.secret_key = os.environ.get('SECRET_KEY')
