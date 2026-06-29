@@ -10,11 +10,17 @@ from routes.api_proxy import api_proxy_bp
 from routes.upload import upload_bp
 
 app = Flask(__name__)
-app.secret_key = os.environ.get('SECRET_KEY', os.urandom(32).hex())
+
+# ── Production-ready config ──
+app.secret_key = os.environ.get('SECRET_KEY')
+if not app.secret_key:
+    raise RuntimeError('SECRET_KEY environment variable is required')
+
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=24)
 app.config['API_BASE'] = os.environ.get('API_BASE', 'http://fui-api:8008/api')
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
-app.config['SESSION_COOKIE_SECURE'] = False
+app.config['SESSION_COOKIE_SECURE'] = os.environ.get('FLASK_ENV') == 'production'
+app.config['SESSION_COOKIE_HTTPONLY'] = True
 
 app.register_blueprint(auth_bp)
 app.register_blueprint(fui_bp, url_prefix='/fui')

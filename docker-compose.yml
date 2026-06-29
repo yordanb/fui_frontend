@@ -8,6 +8,10 @@ services:
     ports:
       - "3005:3005"
 
+    volumes:
+      - ./templates:/app/templates
+      - ./routes:/app/routes
+
     env_file:
       - .env
 
@@ -15,7 +19,6 @@ services:
       API_BASE: http://fui-api:8008/api
       OIL_API: http://oil-lab-api:8008
       DBR_API: http://dbr-api:8010
-      SECRET_KEY: ${SECRET_KEY}
 
     healthcheck:
       test: python3 -c "import urllib.request; urllib.request.urlopen('http://localhost:3005/login')"
