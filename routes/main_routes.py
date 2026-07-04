@@ -1,12 +1,17 @@
-from flask import Blueprint, render_template, request, session, redirect, url_for, current_app, flash, Response
+from flask import Blueprint, render_template, request, session, redirect, url_for, current_app, flash, Response, current_app as app
 import requests
 import json
+
 
 main_bp = Blueprint('main', __name__)
 
 def _api_get(endpoint, params=None):
-    headers = {'Authorization': f'Bearer {session["token"]}'}
-    r = requests.get(f'{current_app.config["API_BASE"]}{endpoint}', headers=headers, params=params, timeout=10)
+    token = session.get('token')
+    url = f'{current_app.config["API_BASE"]}{endpoint}'
+    app.logger.info(f"API DEBUG: Calling {url} with Token: {token[:10] if token else 'NONE'}")
+    headers = {'Authorization': f'Bearer {token}'}
+    r = requests.get(url, headers=headers, params=params, timeout=10)
+    app.logger.info(f"API DEBUG: Response {r.status_code}")
     r.raise_for_status()
     return r.json()
 
@@ -35,6 +40,7 @@ def _proxy_request(method, endpoint, body=None):
 
 @main_bp.route('/dashboard')
 def dashboard():
+    app.logger.info(f"DASHBOARD DEBUG: Sesi di main_bp: {session.keys()}") 
     if 'token' not in session:
         return redirect(url_for('auth.login_page'))
     try:
@@ -59,7 +65,7 @@ def users():
     if 'token' not in session:
         return redirect(url_for('auth.login_page'))
     
-    roles = session.get('user', {}).get('roles', [])
+    roles = session.get('user_roles', [])
     if 'TE' not in roles:
         flash('Akses ditolak: Hanya untuk Technical Expert', 'error')
         return redirect(url_for('main.dashboard'))
@@ -77,12 +83,23 @@ def user_list_create():
     if 'token' not in session:
         return {'error': 'unauthorized'}, 401
     if request.method == 'GET':
+        if 'TE' not in session.get('user_roles', []):
+            return {'error': 'forbidden — TE role required'}, 403
         try:
-            return _api_get('/users/')
+            # Coba langsung ke fui-api
+            token = session.get('token')
+            app.logger.info(f"USERS API GET - token[:20]: {token[:20] if token else 'NONE'}...")
+            headers = {'Authorization': f'Bearer {token}'}
+            resp = requests.get(f'{current_app.config["API_BASE"]}/users/', headers=headers, timeout=10)
+            app.logger.info(f"USERS API GET - status: {resp.status_code}")
+            if resp.status_code == 401:
+                return {'error': 'Token expired, please login again'}, 401
+            return Response(resp.content, status=resp.status_code, content_type='application/json')
         except Exception as e:
+            app.logger.error(f"USERS API GET - error: {e}")
             return {'error': str(e)}, 500
     # POST — only TE can create
-    if 'TE' not in session.get('user', {}).get('roles', []):
+    if 'TE' not in session.get('user_roles', []):
         return {'error': 'forbidden — TE role required'}, 403
     try:
         body = request.get_json(force=True)
@@ -100,7 +117,7 @@ def user_detail(user_id):
         except Exception as e:
             return {'error': str(e)}, 500
     # PUT/DELETE — only TE
-    if 'TE' not in session.get('user', {}).get('roles', []):
+    if 'TE' not in session.get('user_roles', []):
         return {'error': 'forbidden — TE role required'}, 403
     try:
         body = request.get_json(force=True) if request.method == 'PUT' else None
@@ -112,7 +129,7 @@ def user_detail(user_id):
 def user_permissions(user_id):
     if 'token' not in session:
         return {'error': 'unauthorized'}, 401
-    if 'TE' not in session.get('user', {}).get('roles', []):
+    if 'TE' not in session.get('user_roles', []):
         return {'error': 'forbidden'}, 403
     try:
         body = request.get_json(force=True) if request.method == 'PUT' else None
@@ -171,38 +188,51 @@ def oil_lab():
         return redirect(url_for('auth.login_page'))
     return render_template('oil_dashboard.html')
 
-from weasyprint import HTML
 
 @main_bp.route('/fui-export-pdf')
 def fui_export_pdf():
     cn = request.args.get('cn', '')
-    if not cn:
-        return redirect(url_for('main.fui_form'))
+    if not cn: return redirect(url_for('main.fui_form'))
     
     token = session.get('token')
     headers = {'Authorization': f'Bearer {token}', 'Accept': 'application/json'}
+    table = request.args.get('table', 'tb_lighting_eqp')
     
-    # Fetch data
-    table = request.args.get('table', 'tb_lighting_eqp') 
-    
-    eqp_data = requests.get(f'http://dbr-api:8010/api/v1/equipment/{table}', headers=headers).json()
-    eqp_data = [row for row in eqp_data if (row.get('cn') or '').lower() == cn.lower()]
-    oil_data = requests.get(f'http://oil-lab-api:8008/api/samples/search', headers=headers, params={'vessel': cn, 'page': 1, 'page_size': 50}).json().get('items', [])
-    dbr_data = requests.get(f'http://dbr-api:8010/api/v1/breakdowns', headers=headers, params={'cn': cn, 'breakdown_code': 'USM', 'size': 10}).json().get('items', [])
+    try:
+        eqp = requests.get(f'http://dbr-api:8010/api/v1/equipment/{table}', headers=headers).json()
+        eqp = [r for r in eqp if (r.get('cn') or '').lower() == cn.lower()]
+        oil = requests.get(f'http://oil-lab-api:8008/api/samples/search', headers=headers, params={'vessel': cn, 'page_size': 20}).json().get('items', [])
+        dbr = requests.get(f'http://dbr-api:8010/api/v1/breakdowns', headers=headers, params={'cn': cn, 'size': 10}).json().get('items', [])
+    except:
+        return "Error fetching data", 500
 
-    has_non_engine = False
-    if oil_data:
-        for row in oil_data:
-            comp = (row.get('unit_id', '') + row.get('component', '')).lower()
-            if 'engine' not in comp:
-                has_non_engine = True
-                break
-    
-    orientation = 'portrait' if not has_non_engine else 'landscape'
+    from reportlab.pdfgen import canvas
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.units import mm
+    import io
 
-    html = render_template('fui_pdf_template.html', cn=cn, eqp_data=eqp_data, oil_data=oil_data, dbr_data=dbr_data, orientation=orientation)
-    pdf = HTML(string=html).write_pdf()
+    buffer = io.BytesIO()
+    p = canvas.Canvas(buffer, pagesize=A4)
+    width, height = A4
     
-    response = Response(pdf, mimetype='application/pdf')
-    response.headers['Content-Disposition'] = f'inline; filename=FUI_{cn}.pdf'
-    return response
+    # Logo
+    try:
+        p.drawImage('/app/static/images/pama_logo.png', 10*mm, height - 25*mm, width=25*mm, preserveAspectRatio=True, mask='auto')
+    except: pass
+    
+    # Text
+    p.setFont("Helvetica-Bold", 14)
+    p.drawString(40*mm, height - 15*mm, "FUI REPORT")
+    p.setFont("Helvetica", 10)
+    p.drawString(40*mm, height - 20*mm, f"Unit: {cn}")
+    p.line(10*mm, height - 27*mm, width - 10*mm, height - 27*mm)
+    
+    p.drawString(10*mm, height - 40*mm, f"Data Equipment: {len(eqp)} record(s).")
+    p.drawString(10*mm, height - 50*mm, f"Total DBR: {len(dbr)} record(s).")
+    p.drawString(10*mm, height - 60*mm, f"Total Oil Sample: {len(oil)} record(s).")
+    
+    p.showPage()
+    p.save()
+    
+    buffer.seek(0)
+    return Response(buffer.getvalue(), mimetype='application/pdf', headers={'Content-Disposition': f'inline; filename=FUI_{cn}.pdf'})

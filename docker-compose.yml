@@ -3,6 +3,7 @@ services:
   fui-frontend:
     build: .
     container_name: fui-frontend
+    command: gunicorn -w 1 --bind 0.0.0.0:3005 app:app
     restart: unless-stopped
 
     ports:

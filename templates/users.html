@@ -136,7 +136,7 @@ async function loadUsers() {
 }
 
 function renderUsers(users) {
-    var isTE = {{ (session.user and 'TE' in session.user.roles)|lower }};
+    var isTE = {{ 'true' if 'TE' in session.get('user_roles', []) else 'false' }};
     var tbody = document.getElementById('usersBody');
     if (!users || !users.length) {
         tbody.innerHTML = '<tr><td colspan="' + (isTE ? 6 : 5) + '" class="text-center text-gray-400 py-12">Belum ada user</td></tr>';

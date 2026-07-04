@@ -5,7 +5,7 @@
     <div class="flex justify-between items-center">
         <h1 class="text-xl font-bold text-gray-900">🛠️ Equipment Management</h1>
         <div class="flex items-center gap-3">
-            {% if session.user and 'TE' in session.user.roles %}
+            {% if 'TE' in session.get('user_roles', []) %}
             <button onclick="openAddModal()" class="px-3 py-1.5 bg-green-600 text-white rounded text-xs font-semibold hover:bg-green-700">+ Add New</button>
             {% endif %}
             <span id="totalInfo" class="text-xs text-gray-500"></span>
@@ -89,7 +89,7 @@ function filterByCN() {
 }
 
 function renderTable(data) {
-    var isTE = {{ (session.user and 'TE' in session.user.roles)|lower }};
+    var isTE = {{ 'true' if 'TE' in session.get('user_roles', []) else 'false' }};
     const tbody = document.getElementById('eqpBody');
     const size = parseInt(document.getElementById('pageSize').value) || 20;
     const start = (currentPage - 1) * size;
@@ -121,7 +121,7 @@ function renderTable(data) {
 let currentPage = 1;
 let editingIndex = null;
 
-var isTE = {{ (session.user and 'TE' in session.user.roles)|lower }};
+var isTE = {{ 'true' if 'TE' in session.get('user_roles', []) else 'false' }};
 
 async function loadEquipment() {
     const table = document.getElementById('tableSelector').value;
