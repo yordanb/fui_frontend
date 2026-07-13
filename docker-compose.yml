@@ -3,7 +3,7 @@ services:
   fui-frontend:
     build: .
     container_name: fui-frontend
-    command: gunicorn -w 1 --bind 0.0.0.0:3005 app:app
+    command: gunicorn -w 1 --timeout 300 --bind 0.0.0.0:3005 app:app
     restart: unless-stopped
 
     ports:
@@ -21,13 +21,29 @@ services:
       OIL_API: http://oil-lab-api:8008
       DBR_API: http://dbr-api:8010
 
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:3005/login || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 15s
+#    healthcheck:
+#      test: ["CMD-SHELL", "curl -f http://localhost:3005/login || exit 1"]
+#      interval: 30s
+#      timeout: 10s
+#      retries: 3
+#      start_period: 15s
+#
+    networks:
+      - backend-network
+      - oil-lab-net
 
+  minio:
+    image: minio/minio
+    container_name: minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin123
+    ports:
+      - "9050:9000"
+      - "9051:9001"
+    volumes:
+      - ./minio_data:/data
     networks:
       - backend-network
       - oil-lab-net

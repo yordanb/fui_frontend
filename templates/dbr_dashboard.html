@@ -782,7 +782,7 @@ async function confirmTruncate() {
     spinner.classList.remove('hidden');
 
     try {
-        var r = await fetch(API + '/api/v1/breakdowns/truncate', { method: 'DELETE' });
+        var r = await fetch('/api/database/truncate/dbr', { method: 'DELETE' });
         var d = await r.json();
         if (d.status === 'ok') {
             hideTruncateModal();

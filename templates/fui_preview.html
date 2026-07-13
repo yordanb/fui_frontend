@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+@page { size: A4 {{ orientation }}; margin: 2mm; }
+body { font-family: 'Courier New', monospace; font-size: 9px; margin: 0; padding: 0; color: #111; }
+h1 { font-size: 14px; text-align: center; margin: 2mm 0 3mm 0; }
+h2 { font-size: 11px; margin: 2mm 0 1mm 0; border-bottom: 1px solid #333; padding-bottom: 1mm; }
+table { width: 100%; border-collapse: collapse; margin-bottom: 2mm; }
+th { background: #1a237e; color: #fff; padding: 3px 4px; text-align: left; font-size: 7.5px; }
+td { padding: 2px 4px; border: 0.5px solid #ccc; font-size: 8px; }
+tr:nth-child(even) { background: #f5f5f5; }
+.code-usm { color: #e65100; font-weight: bold; }
+.cond-normal { background: #dcfce7; color: #166534; }
+.cond-abnormal { background: #fef9c3; color: #854d0e; }
+.cond-critical { background: #fee2e2; color: #991b1b; font-weight: bold; }
+.elem-high { color: #dc2626; font-weight: bold; }
+</style>
+</head>
+<body>
+
+
+<div style="display: flex; align-items: center; margin-top: 0mm; margin-bottom: 2mm;">
+    <img src="images/pama_logo.jpg" style="width: 48px; height: auto; margin-right: 10px;">
+    <div>
+        <div style="font-weight: bold; font-size: 11px;">PT PAMAPERSADA NUSANTARA</div>
+        <div style="font-size: 9px; font-weight: normal;">MINING AND EARTHMOVING CONTRACTOR</div>
+    </div>
+    <div style="flex-grow: 1; text-align: center; font-size: 14px; font-weight: bold;">📝 FUI Report — {{ cn }}</div>
+</div>
+
+
+<!-- Equipment -->
+{% if eqp_data %}
+<h2>Equipment Data</h2>
+<table>
+<tr><th>CN</th><th>Unit Type</th><th>Unit Model</th><th>CN Serial No</th><th>Engine Serial No</th></tr>
+{% for row in eqp_data %}
+<tr>
+<td><strong>{{ row.cn }}</strong></td><td>{{ row.unit_type or '-' }}</td><td>{{ row.unit_model or '-' }}</td>
+<td>{{ row.cn_serial_no or '-' }}</td><td>{{ row.engine_serial_no or '-' }}</td>
+</tr>
+{% endfor %}
+</table>
+{% endif %}
+
+<!-- DBR -->
+{% if dbr_data %}
+<h2>DBR Data (Code USM)</h2>
+<table>
+<tr><th>No</th><th>Tanggal</th><th>CN</th><th>Code</th><th>Trouble Desc</th><th>HM</th><th>Loc</th><th>Action Take</th><th>Mechanic</th><th>GL</th></tr>
+{% for row in dbr_data %}
+<tr>
+<td>{{ loop.index }}</td>
+<td>{{ (row.created_at or '')[:10] }}</td>
+<td>{{ row.cn or '-' }}</td>
+<td class="code-usm">{{ row.breakdown_code or '-' }}</td>
+<td>{{ row.trouble_description or '-' }}</td>
+<td>{{ row.hour_meter or '-' }}</td>
+<td>{{ row.location or '-' }}</td>
+<td>{{ row.action_taken or '-' }}</td>
+<td>{{ row.mechanic or '-' }}</td>
+<td>{{ row.gl or '-' }}</td>
+</tr>
+{% endfor %}
+</table>
+{% endif %}
+
+<!-- Oil Lab -->
+{% if oil_data %}
+{% set ns = namespace(groups={}, order=['engine','transmission','hydraulic','axle','final drive','transfer']) %}
+{% for row in oil_data %}
+  {% set comp = (row.component or row.unit_id or 'General')|lower %}
+  {% set cat = comp %}
+  {% for o in ns.order %}
+    {% if o in comp %}{% set cat = o %}{% endif %}
+  {% endfor %}
+  {% if cat in ns.groups %}
+    {% set _ = ns.groups[cat].append(row) %}
+  {% else %}
+    {% set _ = ns.groups.update({cat: [row]}) %}
+  {% endif %}
+{% endfor %}
+{% set cats = ns.groups.keys()|list %}
+
+<h2>Oil Lab Report</h2>
+{% if cats|length > 0 %}
+<table width="100%" cellpadding="0" cellspacing="0" border="0">
+{% for i in range(0, cats|length, 2) %}
+<tr>
+    <td width="50%" valign="top" style="padding-right: 2mm; vertical-align: top; border: 0;">
+        {% set cat = cats[i] %}
+        <div style="border: 0.5px solid #999; margin-bottom: 2mm; padding: 1mm;">
+            <h3 style="font-size: 9px; margin: 0 0 1mm 0; background: #e8eaf6; padding: 1px 2px;">{{ cat|upper }}</h3>
+            <table style="width:100%; border-collapse: collapse;">
+                <tr><th>Date</th><th>Time</th><th>Vis</th><th>Fuel</th><th>Soot</th><th>Oxi</th><th>Nitr</th><th>Wtr</th><th>Tbn</th><th>Si</th><th>Fe</th><th>Cu</th><th>Al</th><th>Cr</th><th>Pb</th><th>Na</th><th>Cond</th></tr>
+                {% for row in ns.groups[cat][:10] %}
+                <tr>
+                    <td style="font-size: 7px;">{{ (row.sample_date or '')[:10] }}</td>
+                    <td style="font-size: 7px;">{{ row.unit_time or '-' }}</td>
+                    {% for col in ['visc','fuel','soot','oxi','nitr','water','tbn','si','fe','cu','al','cr','pb','na'] %}
+                    {% set n = row[col]|float %}
+                    {% set grade_key = 'grade_' ~ ('c' if col == 'water' else col) %}
+                    {% set is_alert = row[grade_key] in ['A', 'C'] %}
+                    <td style="font-size: 7px; color: {{ '#dc2626' if is_alert else '#111' }}; {{ 'font-weight: bold;' if is_alert else '' }}">{{ "%.1f"|format(n) if row[col] != None else '-' }}</td>
+                    {% endfor %}
+                    <td style="font-size: 7px;">
+                        {% set cond = (row.condition or '')|lower %}
+                        {% set cls = 'cond-normal' if cond == 'normal' else 'cond-critical' if 'crit' in cond else 'cond-abnormal' if 'abnormal' in cond else '' %}
+                        <span class="{{ cls }}" style="padding: 1px 3px;">{{ row.condition or '-' }}</span>
+                    </td>
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
+    </td>
+    <td width="50%" valign="top" style="padding-left: 2mm; vertical-align: top; border: 0;">
+        {% if i + 1 < cats|length %}
+        {% set cat = cats[i+1] %}
+        <div style="border: 0.5px solid #999; margin-bottom: 2mm; padding: 1mm;">
+            <h3 style="font-size: 9px; margin: 0 0 1mm 0; background: #e8eaf6; padding: 1px 2px;">{{ cat|upper }}</h3>
+            <table style="width:100%; border-collapse: collapse;">
+                <tr><th>Date</th><th>Time</th><th>Vis</th><th>Fuel</th><th>Soot</th><th>Oxi</th><th>Nitr</th><th>Wtr</th><th>Tbn</th><th>Si</th><th>Fe</th><th>Cu</th><th>Al</th><th>Cr</th><th>Pb</th><th>Na</th><th>Cond</th></tr>
+                {% for row in ns.groups[cat][:10] %}
+                <tr>
+                    <td style="font-size: 7px;">{{ (row.sample_date or '')[:10] }}</td>
+                    <td style="font-size: 7px;">{{ row.unit_time or '-' }}</td>
+                    {% for col in ['visc','fuel','soot','oxi','nitr','water','tbn','si','fe','cu','al','cr','pb','na'] %}
+                    {% set n = row[col]|float %}
+                    {% set grade_key = 'grade_' ~ ('c' if col == 'water' else col) %}
+                    {% set is_alert = row[grade_key] in ['A', 'C'] %}
+                    <td style="font-size: 7px; color: {{ '#dc2626' if is_alert else '#111' }}; {{ 'font-weight: bold;' if is_alert else '' }}">{{ "%.1f"|format(n) if row[col] != None else '-' }}</td>
+                    {% endfor %}
+                    <td style="font-size: 7px;">
+                        {% set cond = (row.condition or '')|lower %}
+                        {% set cls = 'cond-normal' if cond == 'normal' else 'cond-critical' if 'crit' in cond else 'cond-abnormal' if 'abnormal' in cond else '' %}
+                        <span class="{{ cls }}" style="padding: 1px 3px;">{{ row.condition or '-' }}</span>
+                    </td>
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
+        {% endif %}
+    </td>
+</tr>
+{% endfor %}
+</table>
+{% endif %}
+{% endif %}
+
+</body>
+</html>

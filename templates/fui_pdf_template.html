@@ -3,8 +3,13 @@
 <head>
 <meta charset="utf-8">
 <style>
-@page { size: A4 {{ orientation }}; margin: 5mm; }
-body { font-family: 'Courier New', monospace; font-size: 9px; margin: 0; padding: 0; color: #111; }
+@page { size: A4 {{ orientation }}; margin: 5mm;
+@page {
+    @top-left { content: ""; }
+    @bottom-left { content: ""; }
+    
+} }
+body { font-family: 'Courier New', monospace; font-size: 9px; margin: 0; padding: 0; color: #111;  }
 h1 { font-size: 14px; text-align: center; margin: 2mm 0 3mm 0; }
 h2 { font-size: 11px; margin: 2mm 0 1mm 0; border-bottom: 1px solid #333; padding-bottom: 1mm; }
 table { width: 100%; border-collapse: collapse; margin-bottom: 2mm; }
@@ -20,11 +25,25 @@ tr:nth-child(even) { background: #f5f5f5; }
 </head>
 <body>
 
-<h1>📝 FUI Report — {{ cn }}</h1>
+<div style="margin-bottom: 2mm;  padding-bottom: 0mm; overflow: hidden; display: flex; align-items: center;">
+    <div style="display: flex; align-items: center; flex: 1;">
+        <img src="images/pama_logo.jpg" style="width: 40px; height: auto; margin-right: 10px;">
+        <div style="margin-left: 3mm;">
+            <div style="font-weight: bold; font-size: 11px; white-space: nowrap;">PT PAMAPERSADA NUSANTARA</div>
+            <div style="font-size: 9px; font-weight: normal; white-space: nowrap;">MINING AND EARTHMOVING CONTRACTOR</div>
+        </div>
+    </div>
+    <div style="text-align: center; font-size: 20px; font-weight: bold; flex: 1; align-self: center;">
+        {{ cn }}
+    </div>
+    <div style="flex: 1; text-align: right; align-self: center; font-size: 11px; font-weight: bold;">
+        Follow Up Instruction
+    </div>
+</div>
 
 <!-- Equipment -->
 {% if eqp_data %}
-<h2>Equipment Data</h2>
+
 <table>
 <tr><th>CN</th><th>Unit Type</th><th>Unit Model</th><th>CN Serial No</th><th>Engine Serial No</th></tr>
 {% for row in eqp_data %}
@@ -82,7 +101,7 @@ tr:nth-child(even) { background: #f5f5f5; }
 <tr>
     <td width="50%" valign="top" style="padding-right: 2mm; vertical-align: top; border: 0;">
         {% set cat = cats[i] %}
-        <div style="border: 0.5px solid #999; margin-bottom: 2mm; padding: 1mm;">
+        <div style=" margin-bottom: 2mm; padding: 1mm;">
             <h3 style="font-size: 9px; margin: 0 0 1mm 0; background: #e8eaf6; padding: 1px 2px;">{{ cat|upper }}</h3>
             <table style="width:100%; border-collapse: collapse;">
                 <tr><th>Date</th><th>Time</th><th>Vis</th><th>Fuel</th><th>Soot</th><th>Oxi</th><th>Nitr</th><th>Wtr</th><th>Tbn</th><th>Si</th><th>Fe</th><th>Cu</th><th>Al</th><th>Cr</th><th>Pb</th><th>Na</th><th>Cond</th></tr>
@@ -109,7 +128,7 @@ tr:nth-child(even) { background: #f5f5f5; }
     <td width="50%" valign="top" style="padding-left: 2mm; vertical-align: top; border: 0;">
         {% if i + 1 < cats|length %}
         {% set cat = cats[i+1] %}
-        <div style="border: 0.5px solid #999; margin-bottom: 2mm; padding: 1mm;">
+        <div style=" margin-bottom: 2mm; padding: 1mm;">
             <h3 style="font-size: 9px; margin: 0 0 1mm 0; background: #e8eaf6; padding: 1px 2px;">{{ cat|upper }}</h3>
             <table style="width:100%; border-collapse: collapse;">
                 <tr><th>Date</th><th>Time</th><th>Vis</th><th>Fuel</th><th>Soot</th><th>Oxi</th><th>Nitr</th><th>Wtr</th><th>Tbn</th><th>Si</th><th>Fe</th><th>Cu</th><th>Al</th><th>Cr</th><th>Pb</th><th>Na</th><th>Cond</th></tr>

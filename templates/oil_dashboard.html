@@ -1,9 +1,31 @@
 {% extends "base.html" %}
 {% block title %}Oil Lab - FUI Management{% endblock %}
 {% block content %}
-<div class="mb-4">
-    <h1 class="text-xl font-bold text-gray-900">🛢 Oil Data Lab</h1>
-    <p class="text-gray-500 text-xs">Dashboard analisa sampel oil</p>
+<div class="mb-4 flex items-center justify-between">
+    <div>
+        <h1 class="text-xl font-bold text-gray-900">🛢 Oil Data Lab</h1>
+        <p class="text-gray-500 text-xs">Dashboard analisa sampel oil</p>
+    </div>
+    <div class="flex gap-2">
+        <a href="#import-tab" onclick="switchTab('import')" class="btn-sm bg-[#ff6b6b] text-white font-medium hover:bg-[#ff5252] flex items-center gap-1.5">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+            Import
+        </a>
+        <button id="truncateBtn" onclick="showTruncateModal()" class="btn-sm bg-red-100 text-red-700 hover:bg-red-200 font-medium flex items-center gap-1.5">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+            Truncate
+        </button>
+        <button onclick="exportCSV()" class="btn-sm bg-green-100 text-green-700 hover:bg-green-200 font-medium flex items-center gap-1.5">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            Export CSV
+        </button>
+    </div>
+</div>
+
+<!-- TABS -->
+<div class="flex gap-0 mb-4 border-b border-gray-200 overflow-x-auto scrollbar-hide">
+    <button class="tab-btn active" data-tab="data" onclick="switchTab('data')">📋 Data</button>
+    <button class="tab-btn" data-tab="import" onclick="switchTab('import')">📤 Import</button>
 </div>
 
 <!-- STATS ROW (HIDDEN) -->
@@ -26,6 +48,8 @@
     </div>
 </div>
 
+<!-- TAB: DATA -->
+<div id="tab-data" class="tab-content">
 <!-- FILTERS -->
 <div class="card p-4 mb-4">
     <h2 class="text-sm font-semibold text-gray-900 mb-3">🔍 Filter Data</h2>
@@ -57,7 +81,6 @@
     </div>
 </div>
 
-<!-- DATA TABLE -->
 <div class="card p-4">
     <div class="flex items-center justify-between mb-3">
         <h2 class="text-sm font-semibold text-gray-900">📋 Data Sampel</h2>
@@ -68,7 +91,7 @@
         </div>
     </div>
     <div id="filterChips" class="flex flex-wrap gap-2 mb-3 text-xs hidden"></div>
-    <div class="table-wrap">
+    <div class="table-wrap border border-gray-100 rounded-lg mx-4 mb-4">
         <table class="w-full text-sm">
             <thead>
                 <tr>
@@ -88,6 +111,64 @@
         <button onclick="exportCSV()" class="btn-sm bg-green-100 text-green-700 hover:bg-green-200">⬇ CSV</button>
     </div>
 </div>
+</div><!-- end tab-data -->
+
+<!-- TAB: IMPORT -->
+<div id="tab-import" class="tab-content hidden">
+    <div class="card p-6 max-w-xl mx-auto">
+        <h2 class="text-sm font-semibold text-gray-800 mb-1">📤 Import Data Oil Lab</h2>
+        <p class="text-xs text-gray-400 mb-4">Upload file Excel (.xlsx) sample oil</p>
+
+        <div id="dropZone" class="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-blue-400 transition-colors cursor-pointer bg-gray-50/50">
+            <svg class="w-10 h-10 mx-auto text-gray-300 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+            <p class="text-sm text-gray-500">Drop file .xlsx disini atau klik untuk browse</p>
+            <p class="text-xs text-gray-400 mt-1">Format data sampel oil</p>
+            <input type="file" id="fileInput" accept=".xlsx" class="hidden" onchange="handleFile(this.files[0])">
+        </div>
+
+        <!-- progress -->
+        <div id="importProgress" class="hidden mt-4">
+            <div class="flex items-center gap-2 mb-2">
+                <div class="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                <span class="text-sm text-gray-600" id="importStatus">Processing...</span>
+            </div>
+            <div class="w-full bg-gray-100 rounded-full h-2">
+                <div id="importBar" class="bg-blue-600 h-2 rounded-full transition-all duration-300" style="width:0%"></div>
+            </div>
+        </div>
+
+        <!-- result -->
+        <div id="importResult" class="hidden mt-4 p-4 rounded-xl text-sm"></div>
+    </div>
+</div>
+
+</div><!-- end wrapper -->
+
+<!-- Truncate Confirmation Modal -->
+<div id="truncateModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 hidden" onclick="if(event.target===this)hideTruncateModal()">
+    <div class="bg-white rounded-2xl p-6 max-w-sm w-full mx-4 shadow-2xl" onclick="event.stopPropagation()">
+        <div class="flex items-center gap-3 mb-4">
+            <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center text-red-600">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-.833-2.694-.833-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z"/></svg>
+            </div>
+            <div>
+                <h3 class="text-sm font-bold text-gray-900">⚠️ Hapus Semua Data Oil Lab</h3>
+                <p class="text-xs text-gray-500 mt-0.5">Tindakan ini tidak bisa dibatalkan</p>
+            </div>
+        </div>
+        <p class="text-sm text-gray-600 mb-3">Semua data sample oil akan dihapus permanen.</p>
+        <p class="text-xs text-gray-500 mb-3">Ketik <strong class="text-red-600">DELETE</strong> untuk konfirmasi:</p>
+        <input type="text" id="truncateInput" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-red-500" placeholder="Ketik DELETE di sini" autocomplete="off">
+        <div class="flex gap-2 justify-end">
+            <button onclick="hideTruncateModal()" class="btn-sm bg-gray-100 text-gray-600 hover:bg-gray-200">Batal</button>
+            <button onclick="confirmTruncateOil()" id="truncateConfirmBtn" disabled class="btn-sm bg-red-600 text-white hover:bg-red-700 font-semibold flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed">
+                <svg class="w-4 h-4 animate-spin hidden" id="truncateSpinner" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                Hapus Semua
+            </button>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block extra_js %}
@@ -101,6 +182,51 @@ const ELEM_LABELS = ['Visc','Fuel','Soot','Oxi','Nitr','Wtr','Tbn','Si','Fe','Cu
 const ELEM_COLS  = ['visc','fuel','soot','oxi','nitr','water','tbn','si','fe','cu','al','cr','pb','na'];
 const ELEM_THRESH = { fe:50, cr:20, cu:30, pb:20, si:20, water:1, visc:80, soot:5, al:10, na:10, oxi:20, nitr:10, fuel:3 };
 
+// ============ TAB SWITCHING ============
+function switchTab(name) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+    const btn = document.querySelector(`.tab-btn[data-tab="${name}"]`);
+    if (btn) btn.classList.add('active');
+    const tab = document.getElementById(`tab-${name}`);
+    if (tab) tab.classList.remove('hidden');
+}
+
+// ============ TRUNCATE ============
+function showTruncateModal() {
+    document.getElementById('truncateModal').classList.remove('hidden');
+    document.getElementById('truncateInput').value = '';
+    document.getElementById('truncateConfirmBtn').disabled = true;
+    document.getElementById('truncateInput').focus();
+    document.getElementById('truncateInput').oninput = function() {
+        document.getElementById('truncateConfirmBtn').disabled = this.value !== 'DELETE';
+    };
+}
+function hideTruncateModal() {
+    document.getElementById('truncateModal').classList.add('hidden');
+}
+async function confirmTruncateOil() {
+    const btn = document.getElementById('truncateConfirmBtn');
+    btn.disabled = true;
+    document.getElementById('truncateSpinner').classList.remove('hidden');
+    try {
+        const r = await fetch('/api/database/truncate', { method: 'POST' });
+        const d = await r.json();
+        if (d.status === 'success') {
+            alert('Database truncated: ' + (d.message || 'OK'));
+            location.reload();
+        } else {
+            alert('Error: ' + (d.message || d.detail || 'Unknown'));
+        }
+    } catch(e) {
+        alert('Error: ' + e.message);
+    } finally {
+        document.getElementById('truncateSpinner').classList.add('hidden');
+        hideTruncateModal();
+    }
+}
+
+// ============ FILTER ============
 function getFilterParams() {
     const fVessel = document.getElementById('fVessel').value.trim();
     const fUnit = document.getElementById('fUnit').value;
@@ -117,14 +243,12 @@ function getFilterParams() {
 async function loadDashboard() {
     page = 0;
     const { params, fVessel, fUnit, fDateFrom, fDateTo } = getFilterParams();
-
     const chips = [];
     if (fUnit) chips.push({label:`Unit: ${fUnit}`, cb:()=>{document.getElementById('fUnit').value='';loadDashboard();}});
     if (fVessel) chips.push({label:`Vessel: ${fVessel}`, cb:()=>{document.getElementById('fVessel').value='';loadDashboard();}});
     if (fDateFrom) chips.push({label:`Dari: ${fDateFrom}`, cb:()=>{document.getElementById('fDateFrom').value='';loadDashboard();}});
     if (fDateTo) chips.push({label:`Sampai: ${fDateTo}`, cb:()=>{document.getElementById('fDateTo').value='';loadDashboard();}});
     renderChips(chips);
-
     try {
         const sr = await fetch(`${API}/api/samples/stats?${params}`);
         const sd = await sr.json();
@@ -135,7 +259,6 @@ async function loadDashboard() {
     } catch(e) {
         document.getElementById('statTotal').textContent = '-';
     }
-
     fetchDashboardPage();
 }
 
@@ -143,7 +266,6 @@ async function fetchDashboardPage() {
     const { params } = getFilterParams();
     params.set('page', page + 1);
     params.set('page_size', PAGE_SIZE);
-
     try {
         const r = await fetch(`${API}/api/samples/search?${params}`);
         const d = await r.json();
@@ -168,41 +290,22 @@ function renderTable(items) {
                        cond.includes('crit') ? 'bg-red-100 text-red-700 font-bold' :
                        cond.includes('abnormal') ? 'bg-yellow-100 text-yellow-700' :
                        'bg-gray-100 text-gray-600';
-
-        let elemHtml = '<div class="grid grid-cols-7 gap-x-2 gap-y-1 text-xs">';
-        for (let i = 0; i < ELEM_LABELS.length; i++) {
-            const colName = ELEM_COLS[i];
-            const val = r[colName];
-            const n = parseFloat(val);
-            let cl = '';
-            if (!isNaN(n)) {
-                const th = ELEM_THRESH[colName];
-                if (th && n > th) cl = 'text-red-600 font-bold';
-            }
-            const display = isNaN(n) ? '-' : n.toFixed(1);
-            elemHtml += `<div><span class="text-gray-400">${ELEM_LABELS[i]}</span> <span class="${cl}">${display}</span></div>`;
-        }
-        elemHtml += '</div>';
-
         return `<tr class="hover:bg-blue-50 border-b">
             <td class="px-3 py-2"><div class="font-medium">${r.vesselid||''}</div><div class="text-xs text-gray-500">${r.unit_id||''}</div></td>
             <td class="px-3 py-2 whitespace-nowrap"><div>${r.sample_date ? String(r.sample_date).substring(0,10) : ''}</div><div class="text-xs text-gray-500">${r.unit_time||''}</div></td>
             <td class="px-3 py-2 text-xs">
-                <div class="grid grid-cols-7 gap-x-2 gap-y-1">
-                    ${ELEM_LABELS.map((label, i) => {
-                        const colName = ELEM_COLS[i];
-                        const val = r[colName];
+                <div class="grid grid-cols-7 gap-x-2 gap-y-1">${(() => {
+                    const labels = ['Visc','Fuel','Soot','Oxi','Nitr','Wtr','Tbn','Si','Fe','Cu','Al','Cr','Pb','Na'];
+                    const cols = ['visc','fuel','soot','oxi','nitr','water','tbn','si','fe','cu','al','cr','pb','na'];
+                    return labels.map((label, i) => {
+                        const val = r[cols[i]];
                         const n = parseFloat(val);
                         let cl = '';
-                        if (!isNaN(n)) {
-                            const th = ELEM_THRESH[colName];
-                            if (th && n > th) cl = 'text-red-600 font-bold';
-                        }
+                        if (!isNaN(n)) { const th = {fe:50,cr:20,cu:30,pb:20,si:20,water:1,visc:80,soot:5,al:10,na:10,oxi:20,nitr:10,fuel:3}[cols[i]]; if (th && n > th) cl = 'text-red-600 font-bold'; }
                         const display = isNaN(n) ? '-' : n.toFixed(1);
-                        return `<div><span class="text-gray-400">${label}</span> <span class="${cl}">${display}</span></div>`;
-                    }).join('')}
-                </div>
-            </td>
+                        return '<div><span class="text-gray-400">' + label + '</span> <span class="' + cl + '">' + display + '</span></div>';
+                    }).join('');
+                })()}</div></td>
             <td class="px-3 py-2 text-center whitespace-nowrap"><span class="px-2 py-1 rounded text-xs ${condBg}">${r.condition||'-'}</span></td>
         </tr>`;
     }).join('');
@@ -277,6 +380,90 @@ async function fetchDateRange() {
             document.getElementById('dateRange').textContent = 'Date Range: ' + min + ' s/d ' + max;
         }
     } catch(e) { console.error('Range error:', e); }
+}
+
+// ============ IMPORT ============
+const OIL_UPLOAD_ENDPOINT = '/api/upload-file?service=oil';
+
+let currentFile = null;
+
+function handleFile(file) {
+    currentFile = file;
+    if (file) {
+        document.getElementById('dropZone').innerHTML = '<p class="text-sm text-blue-600 font-medium">📄 ' + file.name + ' (' + (file.size / 1024).toFixed(1) + ' KB)</p>';
+    }
+}
+
+document.getElementById('dropZone').addEventListener('click', () => document.getElementById('fileInput').click());
+document.getElementById('dropZone').addEventListener('dragover', (e) => { e.preventDefault(); document.getElementById('dropZone').classList.add('border-blue-500'); });
+document.getElementById('dropZone').addEventListener('dragleave', () => document.getElementById('dropZone').classList.remove('border-blue-500'));
+document.getElementById('dropZone').addEventListener('drop', (e) => {
+    e.preventDefault();
+    document.getElementById('dropZone').classList.remove('border-blue-500');
+    const file = e.dataTransfer.files[0];
+    if (file) handleFile(file);
+});
+
+function startUpload() {
+    if (!currentFile) return alert('Pilih file dulu');
+    const formData = new FormData();
+    formData.append('file', currentFile);
+    document.getElementById('importProgress').classList.remove('hidden');
+    document.getElementById('importResult').classList.add('hidden');
+    document.getElementById('importStatus').textContent = 'Uploading...';
+    document.getElementById('importBar').style.width = '0%';
+
+    fetch(OIL_UPLOAD_ENDPOINT, { method: 'POST', body: formData })
+    .then(r => r.json())
+    .then(data => {
+        if (data.status === 'processing' && data.task_id) {
+            pollProgress(data.task_id);
+        } else if (data.status === 'error' || data.error) {
+            showImportResult('error', data.error || data.message || 'Upload gagal');
+        } else {
+            showImportResult('success', JSON.stringify(data));
+        }
+    })
+    .catch(e => showImportResult('error', e.message));
+}
+
+function pollProgress(taskId) {
+    fetch('/api/import/status/' + taskId)
+    .then(r => r.json())
+    .then(d => {
+        if (d.done) {
+            document.getElementById('importStatus').textContent = 'Selesai!';
+            document.getElementById('importBar').style.width = '100%';
+            if (d.error) {
+                showImportResult('error', d.error);
+            } else {
+                var msg = '<strong>✅ Upload Berhasil</strong><br>';
+                if (d.total_rows) {
+                    msg += '<span class="text-green-700">✔ ' + (d.imported_rows || d.total_rows) + '</span> new<br>';
+                    msg += '<span class="text-yellow-600">⚠ ' + (d.duplicated_rows || 0) + '</span> duplicates<br>';
+                    msg += '<span class="text-gray-500">📊 ' + d.total_rows + ' total</span>';
+                }
+                showImportResult('success', msg);
+            }
+            return;
+        }
+        var pct = d.pct || 0;
+        document.getElementById('importBar').style.width = pct + '%';
+        document.getElementById('importStatus').textContent = d.current + '/' + d.total + ' (' + pct + '%)';
+        setTimeout(() => pollProgress(taskId), 2000);
+    })
+    .catch(e => {
+        document.getElementById('importStatus').textContent = 'Menunggu worker...';
+        setTimeout(() => pollProgress(taskId), 3000);
+    });
+}
+
+function showImportResult(type, html) {
+    var el = document.getElementById('importResult');
+    el.classList.remove('hidden');
+    var colors = { success: 'bg-green-50 text-green-800 border-green-200', error: 'bg-red-50 text-red-800 border-red-200', info: 'bg-blue-50 text-blue-800 border-blue-200' };
+    el.className = 'mt-4 p-4 rounded-xl text-sm ' + (colors[type] || colors.info);
+    el.innerHTML = html;
 }
 </script>
 {% endblock %}

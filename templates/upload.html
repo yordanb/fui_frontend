@@ -25,7 +25,9 @@
     {% endfor %}
 </div>
 
-<!-- Drop Zone (hidden until service selected) -->
+<div class="mt-4">
+    <button onclick="confirmTruncate('oil')" class="bg-red-500 text-white px-4 py-2 rounded text-sm">Truncate Oil Lab DB</button>
+</div>
 <div id="uploadArea" class="hidden mt-6">
     <div class="card p-6">
         <div class="flex items-center justify-between mb-4">
@@ -42,10 +44,9 @@
             </svg>
             <p class="text-sm text-gray-500" id="dropText">Drop file .xlsx di sini atau klik untuk browse</p>
             <p class="text-xs text-gray-400 mt-1">Format: .xlsx maks. 50MB</p>
-            <input type="file" id="fileInput" accept=".xlsx" class="hidden" onchange="handleFileSelect(this.files[0])">
+            <input type="file" id="fileInput" class="hidden" onchange="handleFileSelect(this.files[0])">
         </div>
 
-        <!-- File info -->
         <div id="fileInfo" class="hidden mt-4 flex items-center gap-3 p-3 bg-gray-50 rounded-lg text-sm">
             <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center text-blue-600 shrink-0">
                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -59,7 +60,6 @@
             <button onclick="startUpload()" id="uploadBtn" class="btn-primary text-xs py-2 px-4 shrink-0">Upload</button>
         </div>
 
-        <!-- Progress -->
         <div id="uploadProgress" class="hidden mt-4">
             <div class="flex items-center gap-2 mb-2">
                 <div class="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
@@ -70,12 +70,10 @@
             </div>
         </div>
 
-        <!-- Result -->
         <div id="uploadResult" class="hidden mt-4 p-4 rounded-xl text-sm"></div>
     </div>
 </div>
 
-<!-- Upload history / kebutuhan file -->
 <div class="mt-6">
     <h2 class="text-sm font-semibold text-gray-700 mb-3">📋 Kebutuhan Penggunaan File</h2>
     <div class="card overflow-hidden">
@@ -92,6 +90,11 @@
                     <td class="px-4 py-3 font-medium">🛢 Oil Lab</td>
                     <td class="px-4 py-3">.xlsx</td>
                     <td class="px-4 py-3">Data analisa sampel oil — viskositas, fuel dilution, soot, dll</td>
+                </tr>
+                                <tr class="border-b border-gray-50">
+                    <td class="px-4 py-3 font-medium">📁 Files</td>
+                    <td class="px-4 py-3">Any Format</td>
+                    <td class="px-4 py-3">Simpan file ke server untuk kebutuhan arsip atau temp data</td>
                 </tr>
                 <tr class="border-b border-gray-50">
                     <td class="px-4 py-3 font-medium">🔧 DBR</td>
@@ -112,7 +115,7 @@ const SERVICES = {
         label: '{{ svc.label }}',
         description: '{{ svc.description }}',
         accept: '{{ svc.accept }}',
-        endpoint: '/upload-api/{{ key }}',
+        endpoint: '{{ svc.endpoint }}',
     },
     {% endfor %}
 };
@@ -125,7 +128,7 @@ function selectService(key) {
     document.getElementById('uploadArea').classList.remove('hidden');
     document.getElementById('selectedIcon').textContent = svc.label.split(' ')[0];
     document.getElementById('selectedLabel').textContent = svc.label;
-    document.getElementById('dropText').textContent = `Upload ${svc.label} — drop file ${svc.accept} atau klik`;
+    document.getElementById('dropText').textContent = `Upload ${svc.label} drop file ${svc.accept} atau klik`;
 }
 
 function deselectService() {
@@ -135,7 +138,6 @@ function deselectService() {
     resetUploadUI();
 }
 
-// ---- Drag & Drop ----
 const dropZone = document.getElementById('dropZone');
 dropZone.addEventListener('click', function() { document.getElementById('fileInput').click(); });
 dropZone.addEventListener('dragover', function(e) {
@@ -178,16 +180,14 @@ function resetUploadUI() {
     window._selectedFile = null;
 }
 
-// ---- Upload ----
 function startUpload() {
     const file = window._selectedFile;
     if (!file) return;
-    if (!file.name.endsWith('.xlsx')) {
-        showResult('error', 'Hanya file .xlsx yang diterima');
+    var svc = SERVICES[selectedService]; const validExts = svc.accept.split(",").map(e => e.trim()); if (svc.accept !== '*' && !validExts.some(ext => file.name.toLowerCase().endsWith(ext))) {
+        showResult('error', 'Hanya file ' + svc.accept + ' yang diterima');
         return;
     }
 
-    const svc = SERVICES[selectedService];
 
     document.getElementById('uploadProgress').classList.remove('hidden');
     document.getElementById('uploadResult').classList.add('hidden');
@@ -203,39 +203,18 @@ function startUpload() {
         method: 'POST',
         body: formData,
     })
-    .then(function(resp) { document.getElementById('uploadBar').style.width = '90%'; return resp.json(); })
+    .then(function(resp) { 
+        document.getElementById('uploadBar').style.width = '30%';
+        return resp.json(); 
+    })
     .then(function(result) {
-        document.getElementById('uploadBar').style.width = '100%';
-
-        if (result.status === 'success' || result.status === 'ok') {
-            var msg = '<strong class="text-sm">✅ Upload Berhasil</strong><br>' +
-                      (result.filename || file.name) + '<br>';
-            if (result.total_rows) msg += '<span class="font-semibold">' + result.total_rows + '</span> baris di-import';
-            if (result.inserted) msg += ' (' + result.inserted + ' baru';
-            if (result.updated) msg += ', ' + result.updated + ' updated';
-            msg += (result.skipped ? ', ' + result.skipped + ' skip' : '') + ')';
-            showResult('success', msg);
-        } else if (result.status === 'duplicate_file') {
-            showResult('warning',
-                '<strong>⚠️ File Duplikat</strong><br>' +
-                result.filename + ' — sudah pernah diupload (' + (result.total_rows || '?') + ' baris)'
-            );
-        } else if (result.status === 'empty_file') {
-            showResult('error',
-                '<strong>⚠️ File Kosong / Format Tidak Cocok</strong><br>' +
-                'Tidak ada data bisa dipastikan format .xlsx sesuai.'
-            );
-        } else if (result.error) {
-            showResult('error', 'Error: ' + result.error);
+        if (result.status === 'processing' && result.task_id) {
+            document.getElementById('uploadStatus').textContent = 'Import berjalan...';
+            document.getElementById('uploadBar').style.width = '40%';
+            pollProgress(result.task_id, file);
         } else {
-            showResult('info', JSON.stringify(result, null, 2));
+            handleResult(result, file);
         }
-
-        setTimeout(function() {
-            document.getElementById('uploadProgress').classList.add('hidden');
-            document.getElementById('dropZone').classList.remove('pointer-events-none', 'opacity-40');
-            document.getElementById('uploadBtn').disabled = false;
-        }, 3000);
     })
     .catch(function(err) {
         showResult('error', 'Error: ' + err.message);
@@ -243,6 +222,57 @@ function startUpload() {
         document.getElementById('dropZone').classList.remove('pointer-events-none', 'opacity-40');
         document.getElementById('uploadBtn').disabled = false;
     });
+}
+
+function pollProgress(taskId, file) {
+    fetch('/api/import/status/' + taskId)
+    .then(function(resp) { return resp.json(); })
+    .then(function(progress) {
+        if (progress.status === 'not_found') {
+            document.getElementById('uploadStatus').textContent = 'Menunggu worker...';
+            setTimeout(function() { pollProgress(taskId, file); }, 2000);
+            return;
+        }
+        
+        document.getElementById('uploadBar').style.width = Math.min(progress.pct || 0, 100) + '%';
+        if (progress.total > 0) {
+            document.getElementById('uploadStatus').textContent = 'Sync ' + (progress.pct || 0) + '% (' + (progress.current || 0) + '/' + progress.total + ')';
+        }
+        
+        if (progress.done) {
+            handleResult({status: 'success', total_rows: progress.total}, file);
+        } else {
+            setTimeout(function() { pollProgress(taskId, file); }, 1500);
+        }
+    })
+    .catch(function() {
+        setTimeout(function() { pollProgress(taskId, file); }, 2000);
+    });
+}
+
+function handleResult(result, file) {
+    document.getElementById('uploadBar').style.width = '100%';
+    document.getElementById('uploadProgress').classList.add('hidden');
+    document.getElementById('dropZone').classList.remove('pointer-events-none', 'opacity-40');
+    document.getElementById('uploadBtn').disabled = false;
+    
+    if (result.status === 'success' || result.status === 'ok') {
+        var msg = '<strong class="text-sm">✅ Upload Berhasil</strong><br>' +
+                  (file.name || result.filename) + '<br>';
+        if (result.total_rows) {
+            msg += '<div class="mt-2 flex flex-col gap-1">' +
+                   '<span class="font-semibold text-green-700">✔ ' + (result.imported_rows || result.total_rows) + '</span> new records added' +
+                   '<span class="text-yellow-600">⚠ ' + (result.duplicated_rows || 0) + '</span> duplicates skipped' +
+                   '<span class="text-gray-500">📊 ' + result.total_rows + ' total rows processed</span></div>';
+        }
+        showResult('success', msg);
+    } else if (result.error) {
+        showResult('error', 'Error: ' + result.error);
+    } else if (result.status === 'processing') {
+        showResult('info', 'Processing... silakan cek hasil beberapa saat lagi');
+    } else {
+        showResult('info', JSON.stringify(result, null, 2));
+    }
 }
 
 function showResult(type, html) {
@@ -256,6 +286,17 @@ function showResult(type, html) {
     };
     el.className = 'mt-4 p-4 rounded-xl text-sm ' + (colors[type] || colors.info);
     el.innerHTML = html;
+}
+function confirmTruncate(service) { console.log("Truncate clicked, service:", service);
+    if(service !== "oil") return;
+    if(!confirm("Hapus semua data sample_results? Tindakan ini tidak bisa dibatalkan!")) return;
+    fetch("/api/database/truncate", {method: "POST"})
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if(data.status === "success") alert("Database truncated: " + data.message);
+        else alert("Error: " + (data.message || data.detail));
+    })
+    .catch(function(e) { alert("Error: " + e.message); });
 }
 </script>
 {% endblock %}

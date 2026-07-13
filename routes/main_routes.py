@@ -206,33 +206,15 @@ def fui_export_pdf():
     except:
         return "Error fetching data", 500
 
-    from reportlab.pdfgen import canvas
-    from reportlab.lib.pagesizes import A4
-    from reportlab.lib.units import mm
+    from weasyprint import HTML
     import io
 
-    buffer = io.BytesIO()
-    p = canvas.Canvas(buffer, pagesize=A4)
-    width, height = A4
-    
-    # Logo
-    try:
-        p.drawImage('/app/static/images/pama_logo.png', 10*mm, height - 25*mm, width=25*mm, preserveAspectRatio=True, mask='auto')
-    except: pass
-    
-    # Text
-    p.setFont("Helvetica-Bold", 14)
-    p.drawString(40*mm, height - 15*mm, "FUI REPORT")
-    p.setFont("Helvetica", 10)
-    p.drawString(40*mm, height - 20*mm, f"Unit: {cn}")
-    p.line(10*mm, height - 27*mm, width - 10*mm, height - 27*mm)
-    
-    p.drawString(10*mm, height - 40*mm, f"Data Equipment: {len(eqp)} record(s).")
-    p.drawString(10*mm, height - 50*mm, f"Total DBR: {len(dbr)} record(s).")
-    p.drawString(10*mm, height - 60*mm, f"Total Oil Sample: {len(oil)} record(s).")
-    
-    p.showPage()
-    p.save()
-    
+    # Determine orientation - landscape if oil data has more than just engine
+    cats = set((row.get('component') or row.get('unit_id') or 'General').strip().lower() for row in oil) if oil else set()
+    orientation = 'landscape' if len(cats) > 1 else 'portrait'
+    html = render_template('fui_pdf_template.html', cn=cn, eqp_data=eqp, dbr_data=dbr, oil_data=oil, orientation=orientation)
+    pdf = HTML(string=html, base_url='file:///app/static/').write_pdf()
+    buffer = io.BytesIO(pdf)
     buffer.seek(0)
     return Response(buffer.getvalue(), mimetype='application/pdf', headers={'Content-Disposition': f'inline; filename=FUI_{cn}.pdf'})
+

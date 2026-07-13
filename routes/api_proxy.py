@@ -1,30 +1,60 @@
 import requests
-from flask import Blueprint, request, Response, current_app
+import logging
+from flask import Blueprint, request, Response, session
 
 api_proxy_bp = Blueprint('api_proxy', __name__)
+logger = logging.getLogger(__name__)
 
-MOBILE_API = 'http://fui-mobile-api:9090'
+SERVICES = {
+    'api': 'http://fui-api:8008',
+    'oil-lab-api': 'http://oil-lab-api:8008',
+    'dbr-api': 'http://dbr-api:8010'
+}
 
-@api_proxy_bp.route('/api/<path:subpath>', methods=['GET', 'POST', 'PUT', 'PATCH', 'DELETE'])
-def proxy_api(subpath):
-    url = f'{MOBILE_API}/{subpath}'
-    headers = {k: v for k, v in request.headers if k.lower() not in ('host', 'content-length', 'cookie')}
-
-    # Forward Authorization header from Flutter
-    auth = request.headers.get('Authorization', '')
-    if auth:
-        headers['Authorization'] = auth
-
+@api_proxy_bp.route('/<service>/<path:subpath>', methods=['GET', 'POST', 'PUT', 'PATCH', 'DELETE'])
+def proxy_service(service, subpath):
+    if service not in SERVICES: 
+        return {'detail': 'Service not found'}, 404
+    
+    url = f"{SERVICES[service]}/{subpath}"
+    logger.info(f"PROXY: {request.method} {url}")
+    
+    # Minimal headers - hanya forward Accept
+    fwd_headers = {
+        'Accept': request.headers.get('Accept', '*/*'),
+        'User-Agent': 'fui-proxy/1.0'
+    }
+    
+    # Token hanya untuk service 'api'
+    token = session.get('token')
+    if token and service == 'api':
+        fwd_headers['Authorization'] = f'Bearer {token}'
+    
     try:
+        # Kirim method & params saja, tanpa data/cookies/body
         r = requests.request(
             method=request.method,
             url=url,
-            headers=headers,
+            headers=fwd_headers,
             params=request.args,
-            json=request.get_json(silent=True) or None,
-            data=request.get_data() if not request.is_json else None,
-            timeout=30,
+            timeout=60
         )
-        return Response(r.content, status=r.status_code, content_type=r.headers.get('content-type', 'application/json'))
+        # Hapus header transfer-encoding/chunked dari response backend
+        resp_headers = dict(r.headers)
+        resp_headers.pop('Transfer-Encoding', None)
+        resp_headers.pop('Content-Encoding', None)
+        
+        return Response(
+            r.content,
+            status=r.status_code,
+            headers=resp_headers
+        )
+    except requests.exceptions.ConnectionError:
+        logger.error(f"PROXY CONNECTION REFUSED: {url}")
+        return {'error': 'Oil Lab backend unreachable - connection refused'}, 502
+    except requests.exceptions.Timeout:
+        logger.error(f"PROXY TIMEOUT: {url}")
+        return {'error': 'Oil Lab backend unreachable - timeout'}, 502
     except Exception as e:
-        return {'detail': str(e)}, 502
+        logger.error(f"PROXY ERROR: {e}")
+        return {'error': 'Oil Lab backend unreachable'}, 502
