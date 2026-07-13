@@ -1,50 +1,54 @@
 # FUI Frontend
 
-Frontend untuk FUI Management System + Oil Lab + DBR Dashboard.
+FUI Frontend adalah sistem manajemen terpadu yang melayani **FUI Management**, **Oil Lab**, dan **DBR Dashboard**. Sistem ini dibangun dengan pendekatan *Server-Side Rendering* (SSR) yang ringan menggunakan **Flask** dan **Jinja2**.
 
-## Stack
+## Tech Stack
 
-- **Flask** (Python 3.x) — server-side rendering
-- **Vite + React + TypeScript** (dev/build)
-- **Tailwind CSS v4**
+- **Framework**: Flask (Python)
+- **Templating**: Jinja2
+- **Styling**: Tailwind CSS (via CDN)
+- **Charts**: ApexCharts (via CDN)
+- **Server**: Gunicorn
 
-## Struktur
+## Struktur Proyek
 
-```
-├── app.py                   # Flask entry point
-├── routes/                  # Flask blueprints
-│   ├── auth.py              # Login/logout
-│   ├── fui.py               # FUI CRUD
-│   ├── main_routes.py       # Dashboard, users, list
-│   ├── oil_lab.py           # Oil Lab proxy
-│   └── dbr.py               # DBR proxy
-├── templates/               # Jinja2 templates
-├── static/                  # Static assets
-├── src/                     # React source (build only)
-├── vite.config.ts
-├── package.json
-└── README.md
+```text
+├── app.py                   # Entry point aplikasi
+├── routes/                  # Modul Blueprints
+│   ├── auth.py              # Autentikasi pengguna
+│   ├── fui.py               # Operasi CRUD FUI
+│   ├── oil_lab.py           # Proxy API Oil Lab
+│   ├── dbr.py               # Proxy API DBR
+│   └── upload.py            # API Import & Upload
+├── templates/               # Layout Jinja2
+└── static/                  # Assets (JS, CSS)
 ```
 
-## Running
+## Setup & Deployment
 
+### Environment Variables
+Pastikan file `.env` telah dikonfigurasi sebelum menjalankan aplikasi:
 ```bash
-# Development - Flask
-python3 app.py
-
-# Development - Vite (hot reload)
-npm run dev
+SECRET_KEY=your-secret-key
+OIL_LAB_BACKEND=http://...
+DBR_BACKEND=http://...
 ```
 
-## Endpoint Proxy
+### Development
+```bash
+pip install -r requirements.txt
+python app.py
+```
 
-| Route | Backend |
+### Production
+Aplikasi menggunakan **Docker** dan **Gunicorn**. Jalankan dengan:
+```bash
+docker-compose up --build -d
+```
+
+## Proxy Endpoints
+
+| Route | Target Backend |
 |---|---|
 | `/oil-lab-api/*` | `http://localhost:8009` |
 | `/dbr-api/*` | `http://localhost:8010` |
-| Direct call | `http://localhost:8008/api` |
-
-## Port
-
-- Flask: `3005`
-- Vite dev: `3005`
