@@ -2,6 +2,7 @@ import os
 import logging
 from datetime import timedelta
 from flask import Flask, redirect, url_for, session, render_template
+from flask_session import Session
 from routes.auth import auth_bp
 from routes.fui import fui_bp
 from routes.main_routes import main_bp
@@ -11,9 +12,13 @@ from routes.api_proxy import api_proxy_bp
 from routes.upload import upload_bp
 
 app = Flask(__name__)
+Session(app)
 
 # ── Production-ready config ──
 app.secret_key = os.environ.get('SECRET_KEY')
+app.config['SESSION_TYPE'] = 'filesystem'
+app.config['SESSION_FILE_DIR'] = '/tmp/flask_session'
+app.config['SESSION_PERMANENT'] = True
 
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=24)
 app.config['SESSION_COOKIE_NAME'] = 'fui_app_session'
@@ -21,7 +26,8 @@ app.config['SESSION_COOKIE_PATH'] = '/'
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config['SESSION_COOKIE_SECURE'] = False
-app.config['SESSION_COOKIE_DOMAIN'] = False
+app.config['SESSION_COOKIE_SAMESITE'] = None
+app.config['SESSION_COOKIE_DOMAIN'] = None
 app.config['API_BASE'] = os.environ.get('API_BASE', 'http://fui-api:8008/api')
 
 # ── Blueprints ──

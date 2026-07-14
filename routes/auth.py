@@ -19,9 +19,10 @@ def login_page():
             return render_template('login.html')
 
         data = r.json()
-        session.clear() # Bersihin total
+        session.clear()
         session['token'] = data['access_token']
         session.permanent = True
+        session.modified = True
 
         me = requests.get(f'{current_app.config["API_BASE"]}/auth/me',
                           headers={'Authorization': f'Bearer {data["access_token"]}'}, timeout=10)

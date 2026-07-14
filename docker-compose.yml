@@ -3,7 +3,7 @@ services:
   fui-frontend:
     build: .
     container_name: fui-frontend
-    command: gunicorn --workers 4 --max-requests 1000 --max-requests-jitter 100 --timeout 300 --bind 0.0.0.0:3005 app:app
+    command: gunicorn --workers 1 --timeout 300 --bind 0.0.0.0:3005 app:app
     restart: unless-stopped
 
     ports:
@@ -12,6 +12,7 @@ services:
     volumes:
       - ./templates:/app/templates
       - ./routes:/app/routes
+      - ./app.py:/app/app.py
 
     env_file:
       - .env
