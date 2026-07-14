@@ -26,6 +26,8 @@
 <div class="flex gap-0 mb-4 border-b border-gray-200 overflow-x-auto scrollbar-hide">
     <button class="tab-btn active" data-tab="data" onclick="switchTab('data')">📋 Data</button>
     <button class="tab-btn" data-tab="wp" onclick="switchTab('wp')">🛡 Condmon WP</button>
+    <button class="tab-btn" data-tab="tl" onclick="switchTab('tl')">🛡 Condmon TL</button>
+    <button class="tab-btn" data-tab="gs" onclick="switchTab('gs')">🛡 Condmon GS</button>
     <button class="tab-btn active" data-tab="import" onclick="switchTab('import')">📤 Import</button>
 </div>
 
@@ -147,6 +149,77 @@
         </div>
         <div class="flex justify-between items-center mt-3 text-xs text-gray-400">
             <span id="wpTableInfo">Memuat...</span>
+        </div>
+    </div>
+</div>
+
+
+<div id="tab-tl" class="tab-content hidden">
+    <div class="card p-4 mt-6">
+        <div class="flex items-center justify-between mb-3">
+            <h2 class="text-sm font-semibold text-gray-900">🕵️ Latest Oil Condition (TL Units)</h2>
+            <div class="flex items-center gap-4">
+                <label class="flex items-center gap-2 text-xs font-medium text-gray-700 cursor-pointer">
+                    <input type="checkbox" id="urgentOnlyTL" onchange="renderTLTable()" class="w-4 h-4 text-blue-600 rounded">
+                    Status Urgent Only
+                </label>
+                <button onclick="loadTLData()" class="btn-sm bg-gray-100 hover:bg-gray-200">🔄 Refresh</button>
+            </div>
+        </div>
+        <div class="overflow-x-auto border border-gray-100 rounded-lg">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr>
+                        <th class="px-3 py-2 text-left border-b font-medium text-gray-600 whitespace-nowrap">Vesselid</th>
+                        <th class="px-3 py-2 text-left border-b font-medium text-gray-600 whitespace-nowrap">Unit</th>
+                        <th class="px-3 py-2 text-left border-b font-medium text-gray-600 whitespace-nowrap">Tgl Sample</th>
+                        <th class="px-3 py-2 text-left border-b font-medium text-gray-600 whitespace-nowrap">Unit Time</th>
+                        <th class="px-3 py-2 text-center border-b font-medium text-gray-600">Visc · Fuel · Soot · Oxi · Nitr · Wtr · Tbn · Si · Fe · Cu · Al · Cr · Pb · Na</th>
+                        <th class="px-3 py-2 text-center border-b font-medium text-gray-600 whitespace-nowrap">Condition</th>
+                    </tr>
+                </thead>
+                <tbody id="tlDashBody">
+                    <tr><td colspan="6" class="text-center text-gray-400 py-8">Memuat data TL...</td></tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="flex justify-between items-center mt-3 text-xs text-gray-400">
+            <span id="tlTableInfo">Memuat...</span>
+        </div>
+    </div>
+</div>
+
+<div id="tab-gs" class="tab-content hidden">
+    <div class="card p-4 mt-6">
+        <div class="flex items-center justify-between mb-3">
+            <h2 class="text-sm font-semibold text-gray-900">🕵️ Latest Oil Condition (GS Units)</h2>
+            <div class="flex items-center gap-4">
+                <label class="flex items-center gap-2 text-xs font-medium text-gray-700 cursor-pointer">
+                    <input type="checkbox" id="urgentOnlyGS" onchange="renderGSTable()" class="w-4 h-4 text-blue-600 rounded">
+                    Status Urgent Only
+                </label>
+                <button onclick="loadGSData()" class="btn-sm bg-gray-100 hover:bg-gray-200">🔄 Refresh</button>
+            </div>
+        </div>
+        <div class="overflow-x-auto border border-gray-100 rounded-lg">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr>
+                        <th class="px-3 py-2 text-left border-b font-medium text-gray-600 whitespace-nowrap">Vesselid</th>
+                        <th class="px-3 py-2 text-left border-b font-medium text-gray-600 whitespace-nowrap">Unit</th>
+                        <th class="px-3 py-2 text-left border-b font-medium text-gray-600 whitespace-nowrap">Tgl Sample</th>
+                        <th class="px-3 py-2 text-left border-b font-medium text-gray-600 whitespace-nowrap">Unit Time</th>
+                        <th class="px-3 py-2 text-center border-b font-medium text-gray-600">Visc · Fuel · Soot · Oxi · Nitr · Wtr · Tbn · Si · Fe · Cu · Al · Cr · Pb · Na</th>
+                        <th class="px-3 py-2 text-center border-b font-medium text-gray-600 whitespace-nowrap">Condition</th>
+                    </tr>
+                </thead>
+                <tbody id="gsDashBody">
+                    <tr><td colspan="6" class="text-center text-gray-400 py-8">Memuat data GS...</td></tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="flex justify-between items-center mt-3 text-xs text-gray-400">
+            <span id="gsTableInfo">Memuat...</span>
         </div>
     </div>
 </div>
@@ -406,7 +479,7 @@ document.querySelectorAll('#fUnit,#fVessel,#fDateFrom,#fDateTo').forEach(el => {
     el.addEventListener('keydown', e => { if (e.key === 'Enter') loadDashboard(); });
 });
 
-document.addEventListener('DOMContentLoaded', () => { loadUnitOptions(''); loadDashboard(); fetchDateRange(); loadWPData(); });
+document.addEventListener('DOMContentLoaded', () => { loadUnitOptions(''); loadDashboard(); fetchDateRange(); loadWPData(); loadTLData(); loadGSData(); });
 
 async function fetchDateRange() {
     try {
@@ -476,6 +549,89 @@ function renderWPTable() {
             '<td class="px-3 py-2 text-xs"><div class="grid grid-cols-7 gap-x-2 gap-y-1">' + elemCells.join('') + '</div></td>\n' +
             '<td class="px-3 py-2 text-center whitespace-nowrap"><span class="px-2 py-1 rounded text-xs ' + condBg + '">' + (wp.condition||'-') + '</span></td>\n' +
             '</tr>';
+    }).join('');
+}
+
+var cachedTLData = [];
+var cachedGSData = [];
+
+async function loadTLData() {
+    var tbody = document.getElementById('tlDashBody');
+    var info = document.getElementById('tlTableInfo');
+    tbody.innerHTML = '<tr><td colspan="6" class="text-center text-gray-400 py-8"><div class="inline-block w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div> Memuat...</td></tr>';
+    try {
+        var r = await fetch(API + '/api/samples/condmon-tl');
+        cachedTLData = await r.json();
+        renderTLTable();
+    } catch(e) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-red-500 py-4">Error: ' + e.message + '</td></tr>';
+        info.textContent = 'Gagal memuat';
+    }
+}
+
+function renderTLTable() {
+    var tbody = document.getElementById('tlDashBody');
+    var info = document.getElementById('tlTableInfo');
+    var urgentOnly = document.getElementById('urgentOnlyTL').checked;
+    var data = urgentOnly ? cachedTLData.filter(x => (x.condition||'').toLowerCase() !== 'normal') : cachedTLData;
+    if (!data || !data.length) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-gray-400 py-8">Tidak ada data TL</td></tr>';
+        info.textContent = '0 baris';
+        return;
+    }
+    info.textContent = data.length + ' unit TL ditampilkan';
+    var cols = ['visc','fuel','soot','oxi','nitr','water','tbn','si','fe','cu','al','cr','pb','na'];
+    var labels = ['Visc','Fuel','Soot','Oxi','Nitr','Wtr','Tbn','Si','Fe','Cu','Al','Cr','Pb','Na'];
+    var thresh = {fe:50,cr:20,cu:30,pb:20,si:20,water:1,visc:80,soot:5,al:10,na:10,oxi:20,nitr:10,fuel:3};
+    tbody.innerHTML = data.map(function(wp) {
+        var cond = (wp.condition||'').toLowerCase();
+        var condBg = cond === 'normal' ? 'bg-green-100 text-green-700' : cond.indexOf('crit') !== -1 ? 'bg-red-100 text-red-700 font-bold' : cond.indexOf('abnormal') !== -1 ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-600';
+        var elemCells = labels.map(function(l, i) {
+            var val = wp[cols[i]]; var n = parseFloat(val); var cl = '';
+            if (!isNaN(n)) { var t = thresh[cols[i]]; if (t && n > t) cl = 'text-red-600 font-bold'; }
+            return '<div><span class="text-gray-400">' + l + '</span> <span class="' + cl + '">' + (isNaN(n) ? '-' : n.toFixed(1)) + '</span></div>';
+        });
+        return '<tr class="hover:bg-blue-50 border-b"><td class="px-3 py-2 font-medium">' + (wp.vesselid||'-') + '</td><td class="px-3 py-2 text-gray-600">' + (wp.unit_id||'-') + '</td><td class="px-3 py-2 whitespace-nowrap">' + (wp.sample_date ? String(wp.sample_date).substring(0,10) : '-') + '</td><td class="px-3 py-2 text-xs text-gray-500">' + (wp.unit_time||'-') + '</td><td class="px-3 py-2 text-xs"><div class="grid grid-cols-7 gap-x-2 gap-y-1">' + elemCells.join('') + '</div></td><td class="px-3 py-2 text-center whitespace-nowrap"><span class="px-2 py-1 rounded text-xs ' + condBg + '">' + (wp.condition||'-') + '</span></td></tr>';
+    }).join('');
+}
+
+async function loadGSData() {
+    var tbody = document.getElementById('gsDashBody');
+    var info = document.getElementById('gsTableInfo');
+    tbody.innerHTML = '<tr><td colspan="6" class="text-center text-gray-400 py-8"><div class="inline-block w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div> Memuat...</td></tr>';
+    try {
+        var r = await fetch(API + '/api/samples/condmon-gs');
+        cachedGSData = await r.json();
+        renderGSTable();
+    } catch(e) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-red-500 py-4">Error: ' + e.message + '</td></tr>';
+        info.textContent = 'Gagal memuat';
+    }
+}
+
+function renderGSTable() {
+    var tbody = document.getElementById('gsDashBody');
+    var info = document.getElementById('gsTableInfo');
+    var urgentOnly = document.getElementById('urgentOnlyGS').checked;
+    var data = urgentOnly ? cachedGSData.filter(x => (x.condition||'').toLowerCase() !== 'normal') : cachedGSData;
+    if (!data || !data.length) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-gray-400 py-8">Tidak ada data GS</td></tr>';
+        info.textContent = '0 baris';
+        return;
+    }
+    info.textContent = data.length + ' unit GS ditampilkan';
+    var cols = ['visc','fuel','soot','oxi','nitr','water','tbn','si','fe','cu','al','cr','pb','na'];
+    var labels = ['Visc','Fuel','Soot','Oxi','Nitr','Wtr','Tbn','Si','Fe','Cu','Al','Cr','Pb','Na'];
+    var thresh = {fe:50,cr:20,cu:30,pb:20,si:20,water:1,visc:80,soot:5,al:10,na:10,oxi:20,nitr:10,fuel:3};
+    tbody.innerHTML = data.map(function(wp) {
+        var cond = (wp.condition||'').toLowerCase();
+        var condBg = cond === 'normal' ? 'bg-green-100 text-green-700' : cond.indexOf('crit') !== -1 ? 'bg-red-100 text-red-700 font-bold' : cond.indexOf('abnormal') !== -1 ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-600';
+        var elemCells = labels.map(function(l, i) {
+            var val = wp[cols[i]]; var n = parseFloat(val); var cl = '';
+            if (!isNaN(n)) { var t = thresh[cols[i]]; if (t && n > t) cl = 'text-red-600 font-bold'; }
+            return '<div><span class="text-gray-400">' + l + '</span> <span class="' + cl + '">' + (isNaN(n) ? '-' : n.toFixed(1)) + '</span></div>';
+        });
+        return '<tr class="hover:bg-blue-50 border-b"><td class="px-3 py-2 font-medium">' + (wp.vesselid||'-') + '</td><td class="px-3 py-2 text-gray-600">' + (wp.unit_id||'-') + '</td><td class="px-3 py-2 whitespace-nowrap">' + (wp.sample_date ? String(wp.sample_date).substring(0,10) : '-') + '</td><td class="px-3 py-2 text-xs text-gray-500">' + (wp.unit_time||'-') + '</td><td class="px-3 py-2 text-xs"><div class="grid grid-cols-7 gap-x-2 gap-y-1">' + elemCells.join('') + '</div></td><td class="px-3 py-2 text-center whitespace-nowrap"><span class="px-2 py-1 rounded text-xs ' + condBg + '">' + (wp.condition||'-') + '</span></td></tr>';
     }).join('');
 }
 
