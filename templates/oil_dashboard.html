@@ -25,7 +25,8 @@
 <!-- TABS -->
 <div class="flex gap-0 mb-4 border-b border-gray-200 overflow-x-auto scrollbar-hide">
     <button class="tab-btn active" data-tab="data" onclick="switchTab('data')">📋 Data</button>
-    <button class="tab-btn" data-tab="import" onclick="switchTab('import')">📤 Import</button>
+    <button class="tab-btn" data-tab="wp" onclick="switchTab('wp')">🛡 Condmon WP</button>
+    <button class="tab-btn active" data-tab="import" onclick="switchTab('import')">📤 Import</button>
 </div>
 
 <!-- STATS ROW (HIDDEN) -->
@@ -111,7 +112,44 @@
         <button onclick="exportCSV()" class="btn-sm bg-green-100 text-green-700 hover:bg-green-200">⬇ CSV</button>
     </div>
 </div>
+
+
 </div><!-- end tab-data -->
+
+<div id="tab-wp" class="tab-content hidden">
+    <div class="card p-4 mt-6">
+        <div class="flex items-center justify-between mb-3">
+            <h2 class="text-sm font-semibold text-gray-900">🕵️ Latest Oil Condition (WP Units)</h2>
+            <div class="flex items-center gap-4">
+                <label class="flex items-center gap-2 text-xs font-medium text-gray-700 cursor-pointer">
+                    <input type="checkbox" id="urgentOnly" onchange="renderWPTable()" class="w-4 h-4 text-blue-600 rounded">
+                    Status Urgent Only
+                </label>
+                <button onclick="loadWPData()" class="btn-sm bg-gray-100 hover:bg-gray-200">🔄 Refresh</button>
+            </div>
+        </div>
+        <div class="overflow-x-auto border border-gray-100 rounded-lg">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr>
+                        <th class="px-3 py-2 text-left border-b font-medium text-gray-600 whitespace-nowrap">Vesselid</th>
+                        <th class="px-3 py-2 text-left border-b font-medium text-gray-600 whitespace-nowrap">Unit</th>
+                        <th class="px-3 py-2 text-left border-b font-medium text-gray-600 whitespace-nowrap">Tgl Sample</th>
+                        <th class="px-3 py-2 text-left border-b font-medium text-gray-600 whitespace-nowrap">Unit Time</th>
+                        <th class="px-3 py-2 text-center border-b font-medium text-gray-600">Visc · Fuel · Soot · Oxi · Nitr · Wtr · Tbn · Si · Fe · Cu · Al · Cr · Pb · Na</th>
+                        <th class="px-3 py-2 text-center border-b font-medium text-gray-600 whitespace-nowrap">Condition</th>
+                    </tr>
+                </thead>
+                <tbody id="wpDashBody">
+                    <tr><td colspan="6" class="text-center text-gray-400 py-8">Memuat data WP...</td></tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="flex justify-between items-center mt-3 text-xs text-gray-400">
+            <span id="wpTableInfo">Memuat...</span>
+        </div>
+    </div>
+</div>
 
 <!-- TAB: IMPORT -->
 <div id="tab-import" class="tab-content hidden">
@@ -368,7 +406,7 @@ document.querySelectorAll('#fUnit,#fVessel,#fDateFrom,#fDateTo').forEach(el => {
     el.addEventListener('keydown', e => { if (e.key === 'Enter') loadDashboard(); });
 });
 
-document.addEventListener('DOMContentLoaded', () => { loadUnitOptions(''); loadDashboard(); fetchDateRange(); });
+document.addEventListener('DOMContentLoaded', () => { loadUnitOptions(''); loadDashboard(); fetchDateRange(); loadWPData(); });
 
 async function fetchDateRange() {
     try {
@@ -380,6 +418,65 @@ async function fetchDateRange() {
             document.getElementById('dateRange').textContent = 'Date Range: ' + min + ' s/d ' + max;
         }
     } catch(e) { console.error('Range error:', e); }
+}
+
+// ============ WP CONDMON ============
+var cachedWPData = [];
+async function loadWPData() {
+    var tbody = document.getElementById('wpDashBody');
+    var info = document.getElementById('wpTableInfo');
+    tbody.innerHTML = '<tr><td colspan="6" class="text-center text-gray-400 py-8"><div class="inline-block w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div> Memuat...</td></tr>';
+    try {
+        var r = await fetch(API + '/api/samples/condmon-wp');
+        cachedWPData = await r.json();
+        renderWPTable();
+    } catch(e) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-red-500 py-4">Error: ' + e.message + '</td></tr>';
+    }
+}
+
+function renderWPTable() {
+    var tbody = document.getElementById('wpDashBody');
+    var info = document.getElementById('wpTableInfo');
+    var urgentOnly = document.getElementById('urgentOnly').checked;
+    
+    var data = urgentOnly ? cachedWPData.filter(x => (x.condition||'').toLowerCase() !== 'normal') : cachedWPData;
+    
+    if (!data || !data.length) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-gray-400 py-8">Tidak ada data</td></tr>';
+        info.textContent = '0 baris';
+        return;
+    }
+    info.textContent = data.length + ' unit WP ditampilkan';
+    tbody.innerHTML = data.map(function(wp) {
+        var cond = (wp.condition||'').toLowerCase();
+        var condBg = cond === 'normal' ? 'bg-green-100 text-green-700' :
+                   cond.indexOf('crit') !== -1 ? 'bg-red-100 text-red-700 font-bold' :
+                   cond.indexOf('abnormal') !== -1 ? 'bg-yellow-100 text-yellow-700' :
+                   'bg-gray-100 text-gray-600';
+        var cols = ['visc','fuel','soot','oxi','nitr','water','tbn','si','fe','cu','al','cr','pb','na'];
+        var labels = ['Visc','Fuel','Soot','Oxi','Nitr','Wtr','Tbn','Si','Fe','Cu','Al','Cr','Pb','Na'];
+        var thresh = {fe:50,cr:20,cu:30,pb:20,si:20,water:1,visc:80,soot:5,al:10,na:10,oxi:20,nitr:10,fuel:3};
+        var elemCells = labels.map(function(l, i) {
+            var val = wp[cols[i]];
+            var n = parseFloat(val);
+            var cl = '';
+            if (!isNaN(n)) {
+                var t = thresh[cols[i]];
+                if (t && n > t) cl = 'text-red-600 font-bold';
+            }
+            var display = isNaN(n) ? '-' : n.toFixed(1);
+            return '<div><span class="text-gray-400">' + l + '</span> <span class="' + cl + '">' + display + '</span></div>';
+        });
+        return '<tr class="hover:bg-blue-50 border-b">\n' +
+            '<td class="px-3 py-2 font-medium">' + (wp.vesselid||'-') + '</td>\n' +
+            '<td class="px-3 py-2 text-gray-600">' + (wp.unit_id||'-') + '</td>\n' +
+            '<td class="px-3 py-2 whitespace-nowrap">' + (wp.sample_date ? String(wp.sample_date).substring(0,10) : '-') + '</td>\n' +
+            '<td class="px-3 py-2 text-xs text-gray-500">' + (wp.unit_time||'-') + '</td>\n' +
+            '<td class="px-3 py-2 text-xs"><div class="grid grid-cols-7 gap-x-2 gap-y-1">' + elemCells.join('') + '</div></td>\n' +
+            '<td class="px-3 py-2 text-center whitespace-nowrap"><span class="px-2 py-1 rounded text-xs ' + condBg + '">' + (wp.condition||'-') + '</span></td>\n' +
+            '</tr>';
+    }).join('');
 }
 
 // ============ IMPORT ============
